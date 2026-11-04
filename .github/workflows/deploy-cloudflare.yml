@@ -1,0 +1,47 @@
+name: Deploy Nexora to Cloudflare
+# Same GitHub Actions → Wrangler pattern as Sitecraft, simpler Workers-only runtime.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nexora-cloudflare
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      NEXORA_URL: https://nexora-spatial.guduriphaniram1988.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Nexora-specific GitHub secrets
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo '::error::Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in Nexora > Settings > Secrets and variables > Actions.'
+            exit 1
+          fi
+      - run: npm install --no-audit --no-fund
+      - run: npm run check
+      - name: Deploy mock-only Worker
+        run: npx wrangler deploy
+      - name: Verify API and synthetic AEM mode
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 "$NEXORA_URL/api/health" > /tmp/nexora-health.json
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 "$NEXORA_URL/api/aem/overview?scenario=healthy" > /tmp/nexora-aem.json
+          node --input-type=module -e 'import fs from "node:fs"; const h=JSON.parse(fs.readFileSync("/tmp/nexora-health.json")); const a=JSON.parse(fs.readFileSync("/tmp/nexora-aem.json")); if(h.aemMode!=="mock" || a.source!=="mock" || a.sites.length!==120)process.exit(1); console.log("Verified 120 synthetic sites in mock mode");'
+      - name: Deployment summary
+        if: success()
+        run: echo "Nexora Spatial (mock only): $NEXORA_URL" >> "$GITHUB_STEP_SUMMARY"

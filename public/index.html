@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#070a13" />
+<meta name="description" content="Nexora Spatial: an original, interactive AI command center." />
+<title>Nexora Spatial — Lumen Presence V2</title>
+
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-orbit" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="4.4" transform="rotate(-32 12 12)"/><circle cx="12" cy="12" r="3"/><circle cx="20.5" cy="7.5" r="1.4" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M9 19c-4 1.4-4-2-5.5-2.5M15 22v-3.3c0-1 .1-1.5-.4-2 3.8-.4 6.9-1.8 6.9-6.5 0-1.3-.4-2.4-1.1-3.3.1-.5.5-1.9-.2-3.8 0 0-1.5-.3-3.9 2.1a14 14 0 0 0-7.1 0C6.8 2.8 5.3 3.1 5.3 3.1c-.7 1.9-.3 3.3-.2 3.8a5.2 5.2 0 0 0-1.1 3.3c0 4.7 3.1 6.1 6.9 6.5-.5.5-.6 1.1-.6 2V22"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m12 2 1.9 7.1L21 11l-7.1 1.9L12 20l-1.9-7.1L3 11l7.1-1.9L12 2ZM5 20l.8-2.2L8 17l-2.2-.8L5 14l-.8 2.2L2 17l2.2.8L5 20Z"/></symbol>
+  <symbol id="i-notes" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0 0 14 0m-7 7v4m-4 0h8"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7ZM11 13 22 2"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12 15.3a3.3 3.3 0 1 0 0-6.6 3.3 3.3 0 0 0 0 6.6Z"/><path d="M19.4 15.4a1.7 1.7 0 0 0 .3 1.9l.1.1-2 2-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-2.9v-.4a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-2-2 .1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H5v-2.9h.4a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 2-2 .1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V5h2.9v.4a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1 2 2-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.4v2.9h-.4a1.7 1.7 0 0 0-1.3.9Z" transform="translate(-.6 -1)"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><rect x="3" y="13" width="4" height="8" rx="2"/><rect x="17" y="13" width="4" height="8" rx="2"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+</svg>
+<div class="app" id="app">
+  <aside class="rail" aria-label="Primary navigation">
+    <div class="logo-mark" title="Nexora Spatial"><span class="mark-inner"></span></div>
+    <div class="rail-menu">
+      <button class="rail-button selected" id="navHome" title="Command center" aria-label="Command center"><svg><use href="#i-orbit"/></svg></button>
+      <button class="rail-button" id="navGrid" title="Module grid" aria-label="Module grid"><svg><use href="#i-grid"/></svg></button>
+      <button class="rail-button" id="navAem" title="AEM operations" aria-label="AEM operations"><svg><use href="#i-target"/></svg></button>
+      <button class="rail-button" id="navNotes" title="Notes" aria-label="Notes"><svg><use href="#i-notes"/></svg></button>
+      <button class="rail-button" id="navAssistant" title="Assistant" aria-label="Assistant"><svg><use href="#i-sparkles"/></svg></button>
+    </div>
+    <div class="rail-bottom">
+      <button class="rail-button" id="settingsBtn" title="Settings" aria-label="Settings"><svg><use href="#i-settings"/></svg></button>
+      <span class="rail-online" title="Workspace loaded"></span>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <div class="identity">
+        <div class="wordmark">NEXORA<span class="wordmark-dot">.</span></div>
+        <span class="identity-divider"></span>
+        <span class="identity-sub">SPATIAL INTELLIGENCE</span>
+      </div>
+      <div class="header-right">
+        <span class="header-build">STANDALONE PROTOTYPE</span>
+        <div class="status-pill"><span class="small-green-dot"></span> AVATAR V4 · MOCK DATA</div>
+        <div class="top-avatar">N</div>
+      </div>
+    </header>
+
+    <main class="workspace-main">
+      <section class="stage" id="stage" aria-label="Spatial command center">
+        <div class="stage-grid"></div>
+        <div class="stage-ambient"></div>
+        <div class="stage-top">
+          <div>
+            <div class="eyebrow"><span class="eyebrow-line"></span> YOUR INTELLIGENCE, IN MOTION <span class="stage-version">/ V1.0</span></div>
+            <h1>One space.<br /><span>Every possibility.</span></h1>
+            <p class="stage-description">Your connected world, organized around you.<br class="desktop-break"/> Choose a signal, or simply ask.</p>
+          </div>
+          <div class="view-toggle" role="group" aria-label="View layout">
+            <button data-view="humanoid" class="view-button current">HUMANOID</button>
+            <button data-view="spatial" class="view-button">SPATIAL</button>
+            <button data-view="focus" class="view-button">FOCUS</button>
+            <button data-view="grid" class="view-button">GRID</button>
+          </div>
+        </div>
+
+        <div class="universe" id="universe">
+          <div class="humanoid-shell" id="humanoidShell" data-visual="portrait" aria-label="Original interactive cinematic and particle humanoid">
+            <div class="avatar-art" aria-hidden="true"><img class="avatar-image" src="./nexora-avatar.webp" alt="" /></div><canvas id="avatarEffects" class="avatar-effects" aria-hidden="true"></canvas><canvas id="humanoidCanvas" class="humanoid-canvas" aria-label="Interactive 3D-projected point cloud humanoid" role="img"></canvas>
+            <div class="humanoid-left-ui">
+              <div class="hud-micro">PRESENCE ENGINE <span>// 01</span></div>
+              <div class="hud-name">A mind<br>in motion<span>.</span></div>
+              <div class="hud-copy">An intelligence you can see, speak to and explore.<br>Built for your engineering world.</div>
+              <div class="hud-divider"></div>
+              <div class="hud-coordinate">NX — 04<br>CINEMATIC PRESENCE / GPU PARTICLES<br>ORIGINAL ARTWORK &amp; CODE</div><button id="aemHudButton" type="button" class="hud-aem-button">◉ AEM CLOUD OPERATIONS <span>120 synthetic sites · Explore dashboard →</span></button>
+            </div>
+            <div class="humanoid-right-ui">
+              <div class="hud-micro">NEURAL INTERFACE <span>● ACTIVE</span></div>
+              <div class="humanoid-status"><span class="mode-pulse" id="humanoidPulse"></span><span id="humanoidState">STANDBY</span></div>
+              <div class="hud-description" id="humanoidDescription">Tracking enabled. Move your cursor to guide the avatar.</div>
+              <div class="hud-buttons" role="group" aria-label="Humanoid interaction state">
+                <button data-humanoid-state="idle" class="hud-state active" type="button">01 <span>IDLE</span></button>
+                <button data-humanoid-state="listening" class="hud-state" type="button">02 <span>LISTEN</span></button>
+                <button data-humanoid-state="thinking" class="hud-state" type="button">03 <span>THINK</span></button>
+                <button data-humanoid-state="speaking" class="hud-state" type="button">04 <span>SPEAK</span></button>
+              </div>
+              <div class="visual-switch" role="group" aria-label="Avatar rendering style">
+                <button type="button" data-visual="portrait" class="selected">CINEMATIC</button>
+                <button type="button" data-visual="particles">3D PARTICLES</button>
+              </div>
+              <button class="hud-connect" id="humanoidAsk" type="button">OPEN AI ASSISTANT ↗</button>
+              <div class="hud-disclaimer">INTERACTION DEMO · CLOUD AI REQUIRES WORKER DEPLOYMENT</div>
+            </div>
+            <div class="humanoid-bottom"><span class="hud-micro">◈ ORIGINAL NEXORA PRESENCE SYSTEM</span><span>MOVE POINTER FOR PARALLAX · PARTICLE MODE HAS 3D ROTATION</span></div>
+          </div>
+          <div class="orbit-guide orbit-guide-1"></div>
+          <div class="orbit-guide orbit-guide-2"></div>
+          <div class="orbit-guide orbit-guide-3"></div>
+          <div class="orb-platform"></div>
+          <canvas id="orbCanvas" class="orb-canvas" width="700" height="700" aria-label="Animated digital intelligence orb"></canvas>
+          <button class="core-label" id="coreLabel" aria-label="Open AI assistant"><span class="core-sigil">✳</span><span>AI CORE <small>READY TO ASSIST</small></span></button>
+          <div class="orbit-cards" id="orbitCards"></div>
+          <div class="stage-axis stage-axis-left">N 35°  12' 47" <span>—</span> FIELD ACTIVE</div>
+          <div class="stage-axis stage-axis-right">DRAG TO EXPLORE <span>·</span> CLICK TO INSPECT</div>
+        </div>
+
+        <div class="stage-bottom">
+          <div class="stage-legend"><span class="legend-point"></span> SEVEN MODULES READY <span class="legend-muted">/</span> <span id="lastSync">LOCAL SESSION</span></div>
+          <div class="drag-tip">↔ DRAG TO ROTATE</div>
+        </div>
+        <form class="command-bar" id="commandForm" autocomplete="off">
+          <div class="command-icon"><svg><use href="#i-sparkles"/></svg></div>
+          <input id="commandInput" type="text" maxlength="4000" placeholder="Ask Nexora anything, or open a module..." aria-label="Ask Nexora" />
+          <span class="slash-hint">/</span>
+          <button type="button" class="microphone" id="micBtn" title="Speak a command" aria-label="Speak a command"><svg><use href="#i-mic"/></svg></button>
+          <button type="submit" class="send-button" id="sendBtn" title="Send command" aria-label="Send command"><svg><use href="#i-arrow"/></svg></button>
+        </form>
+      </section>
+
+      <aside class="inspector" aria-label="Intelligence panel">
+        <div class="inspector-top"><span class="inspector-title">INTELLIGENCE FEED</span><span class="live-pill"><span></span> ACTIVE</span></div>
+        <div class="assistant-card">
+          <div class="assistant-eyebrow"><span class="sparkle-burst">✳</span> YOUR COPILOT</div>
+          <div class="assistant-title">The right answer<br/>is one thought away<span>.</span></div>
+          <p>Explore your connected world using natural language.</p>
+          <button id="assistantOpen" class="assistant-link">Start a conversation <svg><use href="#i-arrow"/></svg></button>
+          <div class="assistant-card-decoration">✳</div>
+        </div>
+        <div class="section-header"><span>SELECTED SIGNAL</span><span class="tiny-index" id="signalIndex">01 / 06</span></div>
+        <div class="signal-panel" id="signalPanel"></div>
+        <div class="section-header recents-head"><span>QUICK COMMANDS</span><span class="tiny-muted">TRY THESE</span></div>
+        <div class="quick-commands">
+          <button class="quick-command" data-command="Open AEM"><svg><use href="#i-target"/></svg> AEM operations <svg class="quick-arrow"><use href="#i-chevron"/></svg></button>
+          <button class="quick-command" data-command="What time is it?"><svg><use href="#i-target"/></svg> What time is it? <svg class="quick-arrow"><use href="#i-chevron"/></svg></button>
+          <button class="quick-command" data-command="Show my system status"><svg><use href="#i-cpu"/></svg> Show system status <svg class="quick-arrow"><use href="#i-chevron"/></svg></button>
+          <button class="quick-command" data-command="Open weather"><svg><use href="#i-sun"/></svg> Open weather <svg class="quick-arrow"><use href="#i-chevron"/></svg></button>
+        </div>
+        <div class="inspector-bottom"><span class="tiny-green"></span><span>PRIVATE WORKSPACE</span><span class="bottom-version">NX / 01</span></div>
+      </aside>
+    </main>
+  </div>
+</div>
+
+<div class="overlay hidden" id="chatOverlay" aria-hidden="true">
+ <section class="drawer chat-drawer" role="dialog" aria-modal="true" aria-label="AI assistant">
+  <div class="drawer-header"><div><div class="drawer-eyebrow">NEXORA / ASSISTANT</div><h2>Thinking alongside you<span>.</span></h2></div><button class="icon-close" data-close="chatOverlay" aria-label="Close assistant"><svg><use href="#i-close"/></svg></button></div>
+  <div class="chat-subheader"><span class="small-green-dot"></span><span id="chatMode">Local commands are available. AI requires setup.</span></div>
+  <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+  <div class="suggested-prompts"><button data-prompt="What can you do?">What can you do?</button><button data-prompt="Open GitHub">Open GitHub</button><button data-prompt="Show my system status">System status</button></div>
+  <form id="drawerChatForm" class="drawer-input-row"><input id="drawerChatInput" placeholder="Message Nexora..." aria-label="Assistant message" maxlength="4000"/><button class="send-button" type="submit" aria-label="Send"><svg><use href="#i-arrow"/></svg></button></form>
+ </section>
+</div>
+
+<div class="overlay hidden" id="settingsOverlay" aria-hidden="true">
+ <section class="drawer settings-drawer" role="dialog" aria-modal="true" aria-label="Settings">
+  <div class="drawer-header"><div><div class="drawer-eyebrow">WORKSPACE / PREFERENCES</div><h2>Make it yours<span>.</span></h2></div><button class="icon-close" data-close="settingsOverlay" aria-label="Close settings"><svg><use href="#i-close"/></svg></button></div>
+  <div class="settings-body">
+   <label for="githubInput">GITHUB USERNAME</label><p>Connect public GitHub profile statistics. No token required for public data.</p><input type="text" id="githubInput" placeholder="e.g. octocat" maxlength="39" />
+   <label>LOCAL WEATHER</label><p>Use your browser location to fetch current conditions from Open-Meteo.</p><button class="setting-cta" id="weatherConnect" type="button">Enable location <svg><use href="#i-arrow"/></svg></button>
+   <label>ASSISTANT VOICE</label><p>Speech recognition depends on your browser. Speech synthesis runs on your device.</p><div class="setting-switch-row"><span>Speak assistant responses</span><input type="checkbox" id="speakResponses" aria-label="Speak assistant responses"/></div>
+   <label>ABOUT THE CONNECTION</label><div class="connection-info" id="connectionInfo">Checking Cloudflare backend…</div>
+   <p class="settings-warning">This is an independently designed prototype. Browser notes and conversation history are stored on this device. AI chat requests are sent to the configured backend when enabled.</p>
+  </div>
+  <div class="drawer-actions"><button id="saveSettings" class="primary-action" type="button">Save preferences</button></div>
+ </section>
+</div>
+
+<div class="overlay hidden" id="aemOverlay" aria-hidden="true">
+  <section class="drawer aem-drawer" role="dialog" aria-modal="true" aria-label="AEM operations">
+    <div class="drawer-header">
+      <div><div class="drawer-eyebrow">OPERATIONS / ADOBE EXPERIENCE MANAGER</div><h2>AEM intelligence<span>.</span></h2></div>
+      <button class="icon-close" data-close="aemOverlay" aria-label="Close AEM operations"><svg><use href="#i-close"/></svg></button>
+    </div>
+    <div class="aem-head-row"><span class="demo-banner" id="aemDataLabel">SIMULATED DATA</span><div class="aem-actions"><label for="aemScenario">Test scenario</label><select id="aemScenario"><option value="healthy">All healthy</option><option value="degraded">Degraded</option><option value="incident">Incident</option></select><button class="setting-cta" id="aemRefresh" type="button">Refresh ↻</button></div></div>
+    <div class="aem-dashboard-scroll">
+      <div class="aem-stats" id="aemStats" aria-live="polite"></div>
+      <div class="aem-section"><h3>Site health <span id="aemSitesCount"></span></h3><p id="aemSiteNote">Synthetic monitoring test cases. Real site inventory must be explicitly configured.</p><div id="aemSites" class="aem-site-list"></div></div>
+      <div class="aem-section"><h3>Recent pipeline executions</h3><p id="aemCoverage"></p><div id="aemDeployments" class="aem-execution-list"></div></div>
+      <div class="aem-section"><h3>Operational signals</h3><div id="aemAlerts"></div></div>
+    </div>
+    <div class="aem-foot">READ-ONLY · DEMO BY DEFAULT · NO ADOBE AUTHORIZATION REQUIRED FOR MOCK MODE</div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+
+
+<script src="./humanoid.js" defer></script>
+<script src="./app.js" defer></script>
+</body>
+</html>
