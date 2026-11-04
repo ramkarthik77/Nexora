@@ -44,4 +44,5 @@ jobs:
           node --input-type=module -e 'import fs from "node:fs"; const h=JSON.parse(fs.readFileSync("/tmp/nexora-health.json")); const a=JSON.parse(fs.readFileSync("/tmp/nexora-aem.json")); if(h.aemMode!=="mock" || a.source!=="mock" || a.sites.length!==120)process.exit(1); console.log("Verified 120 synthetic sites in mock mode");'
       - name: Deployment summary
         if: success()
-        run: echo "Nexora Spatial (mock only): $NEXORA_URL" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "Nexora Spatial (mock only): $NEXORA_URL" >> "$GITHUB_STEP_SUMMARY"
