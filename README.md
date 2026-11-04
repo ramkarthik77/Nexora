@@ -1,8 +1,8 @@
 # Nexora Spatial — Cloudflare AI Command Center
 
-**Status:** Developer prototype, AEM simulator functional, Adobe Cloud Manager read-only connector implemented but **not yet authenticated against a real Adobe tenant**. **No deployment or GitHub repository creation has been performed.**
+**Status:** Cloudflare-hosted Nexora mock prototype, with an independent animated humanoid and browser-native scripted voice demo. Adobe Cloud Manager read-only connector is present but **not authenticated against a real Adobe tenant**.
 
-This is an independently created spatial AI UI, not Ruturaj's NEXUS or Reznikov Engineering's Apex source code or artwork. The current particle *orb* is original; a 3D humanoid avatar, 3D gesture tracking, and production agent actions remain future work. Name and brand should receive a trademark review before commercial use.
+This is an independently created spatial AI UI, not Ruturaj's NEXUS or Reznikov Engineering's Apex source code or artwork. The current particle *orb* is original; a production-grade rigged 3D humanoid, phoneme-accurate lip sync, 3D gesture tracking, and production agent actions remain future work. Name and brand should receive a trademark review before commercial use.
 
 ## What works now
 
@@ -11,7 +11,26 @@ This is an independently created spatial AI UI, not Ruturaj's NEXUS or Reznikov 
 - Read-only Adobe Cloud Manager API adapter: OAuth Server-to-Server authentication, program/environment/pipeline discovery and bounded recent pipeline execution history. Default mode is `mock`; enterprise mode requires additional explicit safeguards.
 - Optional server-side HTTP HEAD checks against a company-approved inventory, max 20 per request (availability signals, not full AEM health or site discovery).
 - Public GitHub profile lookup, opt-in weather, browser diagnostics, local notes/calendar, optional Claude assistant (Gemini fallback also supported) using a Worker secret.
-- Five passing Node unit/integration tests including a fake Adobe OAuth/API exchange; Playwright tests are supplied but browser tests have not been run in this environment.
+- Node unit/integration tests include fake Adobe OAuth/API exchange and five deterministic mock conversation fixtures; Playwright validates avatar/demo paths in GitHub Actions.
+
+
+## Test an interactive talking avatar without Claude
+
+The default **CINEMATIC** humanoid now includes an independent Canvas 2D face-motion layer over the original artwork: periodic eye blinks, ambient head/shoulder movement, pointer-controlled pose, and **approximate** mouth motion during replies. The separate **3D PARTICLES** mode remains available. This is not full facial rigging, motion capture, or phoneme-exact lip sync.
+
+Click **TEST VOICE CONVERSATION** on the humanoid screen. The five on-screen questions are:
+
+1. **Who are you?**
+2. **How many AEM sites do you monitor?**
+3. **How many production deployments happened this quarter?**
+4. **Can you show me an incident?**
+5. **Can you hear me and talk back?**
+
+Each returns a deterministic locally scripted reply (see `public/mock-conversation.js`) with absolutely **no AI API call**. Replies use your browser's `speechSynthesis` if supported; controls include **VOICE ON/OFF**, **REPLAY**, and **STOP**. You can also type one of these questions into the main command field, or use the microphone in browsers offering Web Speech recognition. **Microphone permission is optional** and speech recognition may be unavailable; scripted question buttons always work without mic permission. Toggle voice off for silent tests. The first answer is always a demonstration, never a real platform status assertion.
+
+For testing offline, `npm run preview` serves the same static UI with a local mock `/api/health` and `/api/aem/overview`. No Claude Code session, ANTHROPIC_API_KEY, Adobe account, or enterprise data is necessary.
+
+**Security:** Browser voice synthesis is local to the browser interface, but the underlying voice engine and speech recognition implementation vary by operating system/browser and may use platform online services. Avoid speaking confidential information while using browser dictation.
 
 ## Project layout
 

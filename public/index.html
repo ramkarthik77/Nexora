@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#070a13" />
 <meta name="description" content="Nexora Spatial: an original, interactive AI command center." />
-<title>Nexora Spatial — Lumen Presence V2</title>
+<title>Nexora Spatial — Lumen Presence V5</title>
 
 <link rel="stylesheet" href="./styles.css" />
 </head>
@@ -53,8 +53,8 @@
         <span class="identity-sub">SPATIAL INTELLIGENCE</span>
       </div>
       <div class="header-right">
-        <span class="header-build">STANDALONE PROTOTYPE</span>
-        <div class="status-pill"><span class="small-green-dot"></span> AVATAR V4 · MOCK DATA</div>
+        <span class="header-build">CLOUDFLARE PREVIEW</span>
+        <div class="status-pill"><span class="small-green-dot"></span> AVATAR V5 · VOICE DEMO</div>
         <div class="top-avatar">N</div>
       </div>
     </header>
@@ -79,13 +79,13 @@
 
         <div class="universe" id="universe">
           <div class="humanoid-shell" id="humanoidShell" data-visual="portrait" aria-label="Original interactive cinematic and particle humanoid">
-            <div class="avatar-art" aria-hidden="true"><img class="avatar-image" src="./nexora-avatar.webp" alt="" /></div><canvas id="avatarEffects" class="avatar-effects" aria-hidden="true"></canvas><canvas id="humanoidCanvas" class="humanoid-canvas" aria-label="Interactive 3D-projected point cloud humanoid" role="img"></canvas>
+            <div class="avatar-art" aria-hidden="true"><img class="avatar-image" src="./nexora-avatar.webp" alt="" /><canvas id="avatarMotion" class="avatar-motion" aria-hidden="true"></canvas></div><canvas id="avatarEffects" class="avatar-effects" aria-hidden="true"></canvas><canvas id="humanoidCanvas" class="humanoid-canvas" aria-label="Interactive 3D-projected point cloud humanoid" role="img"></canvas>
             <div class="humanoid-left-ui">
               <div class="hud-micro">PRESENCE ENGINE <span>// 01</span></div>
               <div class="hud-name">A mind<br>in motion<span>.</span></div>
               <div class="hud-copy">An intelligence you can see, speak to and explore.<br>Built for your engineering world.</div>
               <div class="hud-divider"></div>
-              <div class="hud-coordinate">NX — 04<br>CINEMATIC PRESENCE / GPU PARTICLES<br>ORIGINAL ARTWORK &amp; CODE</div><button id="aemHudButton" type="button" class="hud-aem-button">◉ AEM CLOUD OPERATIONS <span>120 synthetic sites · Explore dashboard →</span></button>
+              <div class="hud-coordinate">NX — 04<br>CINEMATIC PRESENCE / GPU PARTICLES<br>ORIGINAL ARTWORK &amp; CODE</div><button id="aemHudButton" type="button" class="hud-aem-button">◉ AEM CLOUD OPERATIONS <span>120 synthetic sites · Explore dashboard →</span></button><button id="demoOpen" type="button" class="hud-demo-button"><span class="demo-button-dot"></span> TEST VOICE CONVERSATION <small>5 scripted questions · no AI key needed</small></button>
             </div>
             <div class="humanoid-right-ui">
               <div class="hud-micro">NEURAL INTERFACE <span>● ACTIVE</span></div>
@@ -104,6 +104,12 @@
               <button class="hud-connect" id="humanoidAsk" type="button">OPEN AI ASSISTANT ↗</button>
               <div class="hud-disclaimer">INTERACTION DEMO · CLOUD AI REQUIRES WORKER DEPLOYMENT</div>
             </div>
+            <section class="demo-panel hidden" id="demoPanel" aria-label="Mock avatar conversation" aria-hidden="true">
+              <div class="demo-panel-head"><div><span class="demo-kicker">LOCAL VOICE LAB <span>NO AI · NO NETWORK</span></span><h2>Talk to Nexora<span>.</span></h2></div><button id="demoClose" class="demo-close" type="button" aria-label="Close mock conversation">✕</button></div>
+              <div class="demo-question-list" id="demoQuestions" aria-label="Five scripted questions"></div>
+              <div class="demo-response" role="status" aria-live="polite"><span class="demo-response-label" id="demoResponseLabel">READY FOR A QUESTION</span><p id="demoResponse">Choose any question. Nexora will respond and animate its face using your browser's voice.</p></div>
+              <div class="demo-actions"><button id="demoVoiceToggle" type="button">◉ VOICE ON</button><button id="demoReplay" type="button" disabled>↻ REPLAY ANSWER</button><button id="demoStop" type="button">■ STOP</button><span id="demoVoiceStatus" aria-live="polite">SCRIPTED DEMO</span></div>
+            </section>
             <div class="humanoid-bottom"><span class="hud-micro">◈ ORIGINAL NEXORA PRESENCE SYSTEM</span><span>MOVE POINTER FOR PARALLAX · PARTICLE MODE HAS 3D ROTATION</span></div>
           </div>
           <div class="orbit-guide orbit-guide-1"></div>
@@ -199,6 +205,8 @@
 
 
 
+<script src="./mock-conversation.js" defer></script>
+<script src="./avatar-motion.js" defer></script>
 <script src="./humanoid.js" defer></script>
 <script src="./app.js" defer></script>
 </body>

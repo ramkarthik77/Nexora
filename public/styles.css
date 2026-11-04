@@ -140,3 +140,46 @@ body:has(.stage.view-humanoid) .humanoid-right-ui .hud-connect{margin-top:13px}
  body:has(.stage.view-humanoid) .hud-buttons{margin:0}
  body:has(.stage.view-humanoid) .visual-switch{margin-top:6px}
 }
+
+/* V5: original animated portrait with browser-driven speech cues. */
+.humanoid-shell .avatar-art{perspective:1200px;transform:translateX(-50%) translate3d(var(--avatar-px,0px),var(--avatar-py,0px),0) rotateY(var(--avatar-ry,0deg)) rotateZ(var(--avatar-rz,0deg));will-change:transform;}
+.humanoid-shell .avatar-motion{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;mix-blend-mode:screen;filter:contrast(1.11) saturate(1.15);mask-image:radial-gradient(ellipse 50% 53% at 50% 48%,#000 48%,rgba(0,0,0,.88) 58%,transparent 99%);}
+.humanoid-shell .avatar-art[data-motion-ready="true"] .avatar-motion{opacity:.99;}
+.humanoid-shell .avatar-art[data-motion-ready="true"] .avatar-image{opacity:0;}
+.hud-demo-button{pointer-events:auto;display:block;width:100%;margin-top:10px;padding:13px 13px 12px;text-align:left;font:700 10px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.9px;color:#b8f6fc;border:1px solid rgba(109,242,246,.5);border-radius:9px;background:linear-gradient(110deg,rgba(9,102,121,.5),rgba(9,31,52,.68));box-shadow:inset 0 0 24px rgba(68,204,245,.045);}
+.hud-demo-button:hover,.hud-demo-button:focus-visible{background:rgba(17,99,117,.82);border-color:rgba(153,255,253,.88)}
+.hud-demo-button small{display:block;font-weight:500;letter-spacing:.3px;font-size:9px;color:#89acbb;margin-top:5px}
+.demo-button-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#8feaf2;box-shadow:0 0 12px rgba(115,247,255,.7);margin-right:7px}
+.demo-panel{position:absolute;z-index:20;left:50%;bottom:105px;transform:translateX(-50%);width:min(640px,calc(100vw - 45px));max-height:min(63vh,540px);overflow:auto;padding:16px 19px 14px;border-radius:14px;border:1px solid rgba(128,226,241,.48);background:linear-gradient(150deg,rgba(4,22,34,.97),rgba(6,14,28,.96));box-shadow:0 24px 86px rgba(0,0,0,.78),0 0 45px rgba(63,212,238,.095);backdrop-filter:blur(22px);pointer-events:auto;}
+.demo-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.demo-kicker{font:700 9px/1.4 ui-monospace,Consolas,monospace;letter-spacing:1.6px;color:#77dbea}
+.demo-kicker span{color:#e6b57f;margin-left:7px}
+.demo-panel h2{font:600 25px/1.1 system-ui,sans-serif;letter-spacing:-1.1px;margin:7px 0 14px;color:#f0f9fd}
+.demo-panel h2 span{color:#91e9ee}
+.demo-close{flex:0 0 29px;width:29px;height:29px;border:1px solid rgba(149,197,206,.3);background:rgba(42,69,82,.28);color:#e3fbff;border-radius:6px}
+.demo-question-list{display:flex;flex-wrap:wrap;gap:7px}
+.demo-question-list button{border:1px solid rgba(124,207,231,.26);background:rgba(45,91,110,.25);color:#d6eef5;text-align:left;border-radius:7px;padding:9px 11px;font:600 10px/1.5 system-ui,sans-serif;white-space:normal}
+.demo-question-list button:hover,.demo-question-list button.selected{border-color:rgba(125,235,246,.95);background:rgba(35,136,154,.34);color:#fff}
+.demo-response{margin-top:13px;padding:12px 13px;min-height:70px;border-radius:8px;background:rgba(8,35,49,.65);border:1px solid rgba(103,197,225,.2)}
+.demo-response-label{color:#8cf0e9;font:700 9px/1.4 ui-monospace,Consolas,monospace;letter-spacing:1.4px}
+.demo-response p{color:#c6e4ed;font:400 12px/1.65 system-ui,sans-serif;margin:7px 0 0}
+.demo-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.demo-actions button{border:1px solid rgba(92,194,215,.32);background:rgba(30,81,92,.28);color:#baf7f7;border-radius:6px;padding:7px 10px;font:700 10px/1.4 ui-monospace,Consolas,monospace}
+.demo-actions button:disabled{opacity:.44;cursor:default}
+.demo-actions #demoVoiceToggle[aria-pressed="false"]{color:#f4c694;border-color:rgba(224,165,109,.46)}
+.demo-actions #demoVoiceStatus{margin-left:auto;color:#8ea9b8;font:700 8px/1.4 ui-monospace,Consolas,monospace;letter-spacing:.8px}
+body:has(.stage.view-humanoid) .humanoid-left-ui{z-index:6}
+@media(max-width:740px){
+ body:has(.stage.view-humanoid) .hud-demo-button{padding:8px 11px;font-size:9px;max-width:250px;margin-top:6px}
+ .hud-demo-button small{font-size:8px;margin-top:2px}
+ .demo-panel{bottom:77px;width:calc(100vw - 24px);max-height:68svh;padding:12px}
+ .demo-panel h2{font-size:21px;margin:4px 0 10px}
+ .demo-question-list{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+ .demo-question-list button{font-size:9px;padding:7px}
+ .demo-response{padding:8px;min-height:50px}
+ .demo-response p{font-size:11px}
+ .demo-actions{gap:5px}
+ .demo-actions button{font-size:9px;padding:6px}
+ .demo-actions #demoVoiceStatus{flex-basis:100%;margin-left:0}
+}
+@media(prefers-reduced-motion:reduce){.humanoid-shell .avatar-art{transition:none!important}}

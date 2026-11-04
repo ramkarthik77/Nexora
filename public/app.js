@@ -18,9 +18,82 @@ const state = {
  notes:read('notes',[]),events:read('events',[]),messages:read('messages',[]).slice(-30),
  weather:null,github:null,aem:null,aemScenario:'healthy',geo:null,backend:null,recognized:null,busy:false
 };
-let toastTimeout, rafId, humanoidEngine;
+let toastTimeout, rafId, humanoidEngine, avatarMotion, speechIdleTimer;
+let currentSpeechToken=0, currentDemoAnswer='', demoVoiceEnabled=true;
+function voiceStatus(message){const el=$('demoVoiceStatus');if(el)el.textContent=message;}
+function stopVoice(){
+ currentSpeechToken++;
+ clearTimeout(speechIdleTimer);
+ if('speechSynthesis' in window)window.speechSynthesis.cancel();
+ avatarMotion?.setSpeaking(false);
+ if(!state.recognized)setHumanoidState('idle');
+ voiceStatus('STOPPED');
+}
+function speakAnswer(answer,{speak=false}={}){
+ const token=++currentSpeechToken;
+ clearTimeout(speechIdleTimer);
+ // Only demo or opted-in chat should speak; visual animation accompanies speech.
+ const shouldSpeak=!!speak;
+ if(!shouldSpeak || !('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){
+  setHumanoidState('speaking');avatarMotion?.setSpeaking(true);
+  voiceStatus(shouldSpeak?'VOICE UNAVAILABLE · TEXT SHOWN':'TEXT RESPONSE');
+  speechIdleTimer=setTimeout(()=>{if(token===currentSpeechToken){avatarMotion?.setSpeaking(false);setHumanoidState('idle');}},shouldSpeak?2400:1500);
+  return;
+ }
+ const u=new SpeechSynthesisUtterance(String(answer).slice(0,1400));
+ u.rate=.94;u.pitch=.94;u.volume=1;
+ const voices=window.speechSynthesis.getVoices?.()||[];
+ const preferred=voices.find(v=>v.lang.toLowerCase().startsWith('en')&&/(natural|neural|premium|samantha|daniel|ava|zira|aria)/i.test(v.name))||voices.find(v=>v.lang.toLowerCase().startsWith('en'));
+ if(preferred)u.voice=preferred;
+ const end=()=>{if(token!==currentSpeechToken)return;avatarMotion?.setSpeaking(false);setHumanoidState('idle');voiceStatus('FINISHED · SELECT ANOTHER QUESTION');};
+ u.onstart=()=>{if(token!==currentSpeechToken)return;setHumanoidState('speaking');avatarMotion?.setSpeaking(true);voiceStatus('SPEAKING · BROWSER VOICE');};
+ u.onboundary=()=>{if(token===currentSpeechToken)avatarMotion?.speechBeat();};
+ u.onend=end;u.onerror=()=>{if(token!==currentSpeechToken)return;end();voiceStatus('AUDIO UNAVAILABLE · READ RESPONSE');};
+ window.speechSynthesis.cancel();
+ setHumanoidState('speaking');avatarMotion?.setSpeaking(true);voiceStatus('STARTING BROWSER VOICE…');
+ window.speechSynthesis.speak(u);
+}
+function showDemo(){
+ setView('humanoid');
+ const panel=$('demoPanel');panel.classList.remove('hidden');panel.setAttribute('aria-hidden','false');
+ $('demoOpen').setAttribute('aria-expanded','true');
+}
+function hideDemo(){
+ const panel=$('demoPanel');panel.classList.add('hidden');panel.setAttribute('aria-hidden','true');
+ $('demoOpen').setAttribute('aria-expanded','false');
+ stopVoice();
+}
+function playDemoQuestion(id){
+ const q=window.NexoraDemo?.questions.find(item=>item.id===id);
+ if(!q)return;
+ showDemo();
+ if(q.id==='incident'){state.aemScenario='incident';loadAem();}
+ currentDemoAnswer=q.answer;
+ $('demoResponseLabel').textContent='NEXORA · SCRIPTED ANSWER';
+ $('demoResponse').textContent=q.answer;
+ $('demoReplay').disabled=false;
+ document.querySelectorAll('[data-demo-id]').forEach(b=>{b.classList.toggle('selected',b.dataset.demoId===id);b.setAttribute('aria-pressed',String(b.dataset.demoId===id));});
+ pushMessage('user',q.question);
+ pushMessage('assistant',q.answer,{speak:demoVoiceEnabled});
+}
+function setupDemo(){
+ const questions=window.NexoraDemo?.questions||[];
+ $('demoQuestions').replaceChildren(...questions.map((q,i)=>{
+  const btn=document.createElement('button');btn.type='button';btn.dataset.demoId=q.id;
+  btn.setAttribute('aria-pressed','false');btn.textContent=String(i+1).padStart(2,'0')+'  '+q.question;
+  btn.addEventListener('click',()=>playDemoQuestion(q.id));return btn;
+ }));
+ $('demoOpen').setAttribute('aria-expanded','false');
+ $('demoOpen').addEventListener('click',()=>{const showing=!$('demoPanel').classList.contains('hidden');if(showing)hideDemo();else showDemo();});
+ $('demoClose').addEventListener('click',hideDemo);
+ $('demoVoiceToggle').addEventListener('click',()=>{demoVoiceEnabled=!demoVoiceEnabled;$('demoVoiceToggle').textContent=demoVoiceEnabled?'◉ VOICE ON':'○ VOICE OFF';$('demoVoiceToggle').setAttribute('aria-pressed',String(demoVoiceEnabled));if(!demoVoiceEnabled)stopVoice();else voiceStatus('VOICE ENABLED');});
+ $('demoVoiceToggle').setAttribute('aria-pressed','true');
+ $('demoReplay').addEventListener('click',()=>{if(currentDemoAnswer)speakAnswer(currentDemoAnswer,{speak:demoVoiceEnabled});});
+ $('demoStop').addEventListener('click',stopVoice);
+}
+
 function setHumanoidState(next){if(!humanoidEngine)return;humanoidEngine.setMode(next);}
-function onHumanoidState(next){$('humanoidState').textContent=next.toUpperCase();$('humanoidDescription').textContent=({idle:'Move your pointer to explore the light field.',listening:'Listening mode. Cyan energy field activated.',thinking:'Processing the request through available tools.',speaking:'Speaking animation. Amber pulses follow the response.'})[next]||'Ready';document.querySelectorAll('[data-humanoid-state]').forEach(b=>b.classList.toggle('active',b.dataset.humanoidState===next));$('humanoidShell').dataset.mode=next;}
+function onHumanoidState(next){$('humanoidState').textContent=next.toUpperCase();$('humanoidDescription').textContent=({idle:'Move your pointer to explore the light field.',listening:'Listening mode. Cyan energy field activated.',thinking:'Processing the request through available tools.',speaking:'Speaking animation. Amber pulses follow the response.'})[next]||'Ready';document.querySelectorAll('[data-humanoid-state]').forEach(b=>b.classList.toggle('active',b.dataset.humanoidState===next));$('humanoidShell').dataset.mode=next;if(next!=='speaking')avatarMotion?.setSpeaking(false);}
 function svg(id){return `<svg aria-hidden="true"><use href="#${id}"/></svg>`;}
 function safe(str){return String(str??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
 function toast(message){const el=$('toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),3200);}
@@ -56,7 +129,7 @@ function openOverlay(id){const el=$(id);el.classList.remove('hidden');el.setAttr
 function closeOverlay(id){const el=$(id);el.classList.add('hidden');el.setAttribute('aria-hidden','true');}
 function renderSettings(){$('githubInput').value=state.settings.github||'';$('speakResponses').checked=!!state.settings.speak;$('connectionInfo').textContent=state.backend===null?'No Worker API detected yet. UI and local commands still work.':state.backend.aiConfigured?'Cloudflare API reachable · '+(state.backend?.provider||'Claude')+' configured.':'Cloudflare API reachable · AI not configured. Add the ANTHROPIC_API_KEY secret for Claude chat.';}
 function persistMessages(){state.messages=state.messages.slice(-30);save('messages',state.messages);}
-function pushMessage(role,text){state.messages.push({role,text:String(text),at:Date.now()});persistMessages();renderMessages();if(role==='assistant'){setHumanoidState('speaking');if(state.settings.speak&&'speechSynthesis'in window){speechSynthesis.cancel();const utter=new SpeechSynthesisUtterance(String(text).slice(0,1400));utter.rate=1.03;utter.onend=()=>setHumanoidState('idle');utter.onerror=()=>setHumanoidState('idle');speechSynthesis.speak(utter);}else{setTimeout(()=>setHumanoidState('idle'),1800);}}}
+function pushMessage(role,text,options={}){state.messages.push({role,text:String(text),at:Date.now()});persistMessages();renderMessages();if(role==='assistant')speakAnswer(String(text),{speak:options.speak??state.settings.speak});}
 function renderMessages(){const container=$('chatMessages');container.replaceChildren();if(state.messages.length===0){const bubble=document.createElement('div');bubble.className='chat-bubble assistant';bubble.textContent='Welcome to Nexora Spatial. I can open modules, check the time, inspect browser telemetry, save local notes, and—when Claude is connected—answer questions. What would you like to explore?';container.append(bubble);}else{for(const msg of state.messages){const bubble=document.createElement('div');bubble.className='chat-bubble '+(msg.role==='user'?'user':'assistant');const label=document.createElement('div');label.className='chat-label';label.textContent=msg.role==='user'?'YOU':'NEXORA';const content=document.createElement('div');content.textContent=msg.text;bubble.append(label,content);container.append(bubble);}}container.scrollTop=container.scrollHeight;}
 function resolveLocal(input){const q=input.trim(),s=q.toLowerCase();if(/^(open|show|go to|display|inspect)\b/.test(s)){
  const found=modules.find(m=>s.includes(m.id)||s.includes(m.name.toLowerCase())||(m.id==='agents'&&s.includes('assistant'))||(m.id==='notes'&&s.includes('memory')));
@@ -72,7 +145,7 @@ function resolveLocal(input){const q=input.trim(),s=q.toLowerCase();if(/^(open|s
  if(/^(clear conversation|clear chat)$/.test(s)){state.messages=[];persistMessages();return 'Conversation history cleared on this device.';}
  return null;
 }
-async function sendCommand(input){const command=String(input??'').trim();if(!command||state.busy)return;state.busy=true;setHumanoidState('thinking');openOverlay('chatOverlay');pushMessage('user',command);$('commandInput').value='';$('drawerChatInput').value='';$('sendBtn').disabled=true;
+async function sendCommand(input){const command=String(input??'').trim();if(!command||state.busy)return;const demo=window.NexoraDemo?.resolve(command);if(demo){$('commandInput').value='';$('drawerChatInput').value='';closeOverlay('chatOverlay');playDemoQuestion(demo.id);return;}state.busy=true;setHumanoidState('thinking');openOverlay('chatOverlay');pushMessage('user',command);$('commandInput').value='';$('drawerChatInput').value='';$('sendBtn').disabled=true;
  try{const local=resolveLocal(command);if(local!==null){pushMessage('assistant',local);return;}
  if(!state.backend?.aiConfigured){pushMessage('assistant','The conversational AI is not connected yet. Add an ANTHROPIC_API_KEY Worker secret and deploy the app to Cloudflare to enable AI responses. Local workspace commands already work. Open Settings for connection status.');return;}
  const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:command,messages:state.messages.filter(m=>m.role==='user'||m.role==='assistant').slice(-12)})});const data=await response.json();if(!response.ok)throw Error(data.error||'AI service failed');pushMessage('assistant',data.answer||'No response returned.');
@@ -104,7 +177,7 @@ async function checkBackend(){try{const controller=new AbortController();const t
 async function loadGithub(){const user=state.settings.github?.trim();if(!user){openOverlay('settingsOverlay');return;}try{const res=await fetch('/api/github?username='+encodeURIComponent(user));const data=await res.json();if(!res.ok)throw Error(data.error||'GitHub request failed');state.github=data;$('lastSync').textContent='GITHUB SYNCED';renderSignal();toast('GitHub public profile updated');}catch(e){state.github=null;renderSignal();toast('GitHub: '+e.message);}}
 function getLocation(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(Error('Geolocation unavailable'));navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lon:p.coords.longitude}),e=>reject(Error(e.message)),{enableHighAccuracy:false,timeout:12000,maximumAge:600000});});}
 async function loadWeather(requestLocation=false){try{if(!state.geo||requestLocation){state.geo=await getLocation();}const {lat,lon}=state.geo;const res=await fetch(`/api/weather?lat=${encodeURIComponent(lat.toFixed(4))}&lon=${encodeURIComponent(lon.toFixed(4))}`);const data=await res.json();if(!res.ok)throw Error(data.error||'Weather request failed');state.weather=data;renderSignal();toast('Live weather updated');}catch(e){toast('Weather: '+e.message);renderSignal();}}
-function speakCommand(){setView('humanoid');setHumanoidState('listening');const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Recognition){toast('Speech recognition is unavailable in this browser. Try desktop Chrome or Edge.');setHumanoidState('idle');return;}if(state.recognized){state.recognized.stop();state.recognized=null;return;}try{const recognition=new Recognition();state.recognized=recognition;recognition.lang=navigator.language||'en-US';recognition.continuous=false;recognition.interimResults=false;recognition.onresult=e=>{const text=e.results[0][0].transcript;$('commandInput').value=text;sendCommand(text);};recognition.onerror=e=>toast('Voice: '+e.error);recognition.onend=()=>{$('micBtn').classList.remove('listening');state.recognized=null;if(!state.busy)setHumanoidState('idle');};recognition.start();$('micBtn').classList.add('listening');toast('Listening for a command…');}catch(e){toast(e.message);setHumanoidState('idle');}}
+function speakCommand(){setView('humanoid');setHumanoidState('listening');const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Recognition){toast('Speech recognition is unavailable in this browser. Try desktop Chrome or Edge.');setHumanoidState('idle');return;}if(state.recognized){state.recognized.stop();state.recognized=null;return;}try{const recognition=new Recognition();state.recognized=recognition;recognition.lang=navigator.language||'en-US';recognition.continuous=false;recognition.interimResults=false;recognition.onresult=e=>{const text=e.results[0][0].transcript;$('commandInput').value=text;sendCommand(text);};recognition.onerror=e=>toast('Voice: '+e.error);recognition.onend=()=>{$('micBtn').classList.remove('listening');state.recognized=null;if(!state.busy&&!window.speechSynthesis?.speaking)setHumanoidState('idle');};recognition.start();$('micBtn').classList.add('listening');toast('Listening for a command…');}catch(e){toast(e.message);setHumanoidState('idle');}}
 
 function startAvatarVisuals(){
  const shell=$('humanoidShell'),layer=$('avatarEffects');const ctx=layer.getContext('2d');
@@ -125,9 +198,9 @@ function startAvatarVisuals(){
   if(layer.width!==w||layer.height!==h){layer.width=w;layer.height=h;ctx.setTransform(dpr,0,0,dpr,0,0);}
   const W=r.width,H=r.height;ctx.clearRect(0,0,W,H);
   xx+=(pX-xx)*.055;yy+=(pY-yy)*.055;
-  shell.style.setProperty('--avatar-px',(xx*11).toFixed(1)+'px');
-  shell.style.setProperty('--avatar-py',(yy*5).toFixed(1)+'px');
-  shell.style.setProperty('--avatar-ry',(xx*2.3).toFixed(2)+'deg');
+  shell.style.setProperty('--avatar-px',(xx*18).toFixed(1)+'px');
+  shell.style.setProperty('--avatar-py',(yy*9).toFixed(1)+'px');
+  shell.style.setProperty('--avatar-ry',(xx*6.3+(reduced?0:.62*Math.sin(t*.00067))).toFixed(2)+'deg');shell.style.setProperty('--avatar-rz',(yy*1.55+(reduced?0:.60*Math.sin(t*.00053))).toFixed(2)+'deg');
   const mode=shell.dataset.mode||'idle';const active=mode==='listening'||mode==='thinking'||mode==='speaking';
   const pulse=mode==='speaking'? .40+.25*Math.sin(t*.013):mode==='thinking'?.20+.16*Math.sin(t*.004):mode==='listening'?.22+.16*Math.sin(t*.009):.03;
   const x=W*.5,y=H*.47;
@@ -145,8 +218,8 @@ function startAvatarVisuals(){
  }
  requestAnimationFrame(paint);
 }
-function wire(){document.querySelectorAll('.visual-switch [data-visual]').forEach(b=>b.addEventListener('click',()=>setVisual(b.dataset.visual)));document.querySelectorAll('.view-button').forEach(btn=>btn.addEventListener('click',()=>setView(btn.dataset.view)));$('navHome').addEventListener('click',()=>setView('humanoid'));$('navGrid').addEventListener('click',()=>setView('grid'));$('navAem').addEventListener('click',openAem);$('aemHudButton').addEventListener('click',openAem);$('navNotes').addEventListener('click',()=>{selectModule('notes');setView('grid');});$('navAssistant').addEventListener('click',()=>openOverlay('chatOverlay'));$('coreLabel').addEventListener('click',()=>openOverlay('chatOverlay'));$('assistantOpen').addEventListener('click',()=>openOverlay('chatOverlay'));$('settingsBtn').addEventListener('click',()=>openOverlay('settingsOverlay'));
- document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeOverlay(btn.dataset.close)));document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('mousedown',e=>{if(e.target===el)closeOverlay(el.id);}));document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeOverlay('chatOverlay');closeOverlay('settingsOverlay');closeOverlay('aemOverlay');}if(e.key==='/'&&!/input|textarea/i.test(document.activeElement.tagName)){e.preventDefault();$('commandInput').focus();}});
+function wire(){setupDemo();document.querySelectorAll('.visual-switch [data-visual]').forEach(b=>b.addEventListener('click',()=>setVisual(b.dataset.visual)));document.querySelectorAll('.view-button').forEach(btn=>btn.addEventListener('click',()=>setView(btn.dataset.view)));$('navHome').addEventListener('click',()=>setView('humanoid'));$('navGrid').addEventListener('click',()=>setView('grid'));$('navAem').addEventListener('click',openAem);$('aemHudButton').addEventListener('click',openAem);$('navNotes').addEventListener('click',()=>{selectModule('notes');setView('grid');});$('navAssistant').addEventListener('click',()=>openOverlay('chatOverlay'));$('coreLabel').addEventListener('click',()=>openOverlay('chatOverlay'));$('assistantOpen').addEventListener('click',()=>openOverlay('chatOverlay'));$('settingsBtn').addEventListener('click',()=>openOverlay('settingsOverlay'));
+ document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeOverlay(btn.dataset.close)));document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('mousedown',e=>{if(e.target===el)closeOverlay(el.id);}));document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeOverlay('chatOverlay');closeOverlay('settingsOverlay');closeOverlay('aemOverlay');if(!$('demoPanel').classList.contains('hidden'))hideDemo();}if(e.key==='/'&&!/input|textarea/i.test(document.activeElement.tagName)){e.preventDefault();$('commandInput').focus();}});
  $('commandForm').addEventListener('submit',e=>{e.preventDefault();sendCommand($('commandInput').value);});$('drawerChatForm').addEventListener('submit',e=>{e.preventDefault();sendCommand($('drawerChatInput').value);});$('micBtn').addEventListener('click',speakCommand);$('humanoidAsk').addEventListener('click',()=>openOverlay('chatOverlay'));document.querySelectorAll('[data-humanoid-state]').forEach(b=>b.addEventListener('click',()=>setHumanoidState(b.dataset.humanoidState)));$('humanoidCanvas').addEventListener('click',()=>{if(state.view==='humanoid')setHumanoidState(humanoidEngine?.getMode()==='listening'?'idle':'listening');});
  document.querySelectorAll('.quick-command').forEach(btn=>btn.addEventListener('click',()=>sendCommand(btn.dataset.command)));document.querySelectorAll('[data-prompt]').forEach(btn=>btn.addEventListener('click',()=>sendCommand(btn.dataset.prompt)));
  $('saveSettings').addEventListener('click',()=>{const name=$('githubInput').value.trim();if(name&&!/^[a-zA-Z\d](?:[a-zA-Z\d-]{0,37}[a-zA-Z\d])?$/.test(name)){toast('Enter a valid GitHub username');return;}state.settings={github:name,speak:$('speakResponses').checked};save('settings',state.settings);closeOverlay('settingsOverlay');renderSignal();toast('Preferences saved');if(name)loadGithub();});$('aemRefresh').addEventListener('click',loadAem);$('aemScenario').addEventListener('change',e=>{state.aemScenario=e.target.value;loadAem();});$('weatherConnect').addEventListener('click',()=>{closeOverlay('settingsOverlay');selectModule('weather');loadWeather(true);});
@@ -163,5 +236,5 @@ function renderOrb(){const canvas=$('orbCanvas');const ctx=canvas.getContext('2d
  rafId=requestAnimationFrame(draw);
  };draw();}
 function heartbeat(){const now=new Date();const time=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});document.title=`Nexora Spatial — ${time}`;if(state.view==='spatial'&&!state.dragging&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&performance.now()-state.lastMove>5000){state.orbit+=.0005;placeModules();}}
-humanoidEngine=window.NexoraHumanoid?.init($('humanoidCanvas'),onHumanoidState);startAvatarVisuals();wire();selectModule('aem');placeModules();setView('humanoid');renderOrb();renderMessages();checkBackend();loadAem();if(state.settings.github)loadGithub();setInterval(heartbeat,120);window.addEventListener('beforeunload',()=>cancelAnimationFrame(rafId));
+humanoidEngine=window.NexoraHumanoid?.init($('humanoidCanvas'),onHumanoidState);avatarMotion=window.NexoraAvatarMotion?.init($('avatarMotion'),document.querySelector('.avatar-image'),$('humanoidShell'));startAvatarVisuals();wire();selectModule('aem');placeModules();setView('humanoid');renderOrb();renderMessages();checkBackend();loadAem();if(state.settings.github)loadGithub();setInterval(heartbeat,120);window.addEventListener('beforeunload',()=>{cancelAnimationFrame(rafId);stopVoice();avatarMotion?.destroy();});
 })();
