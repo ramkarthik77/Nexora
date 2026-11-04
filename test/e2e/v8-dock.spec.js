@@ -20,6 +20,7 @@ test('V8: choosing a live avatar does not force slow neural audio',async({page})
  await page.locator('[data-visual="live"]').click();
  await expect(page.locator('#humanoidShell')).toHaveAttribute('data-visual','live');
  await expect(page.locator('#demoVoiceSource')).toHaveValue('browser');
+ await page.locator('#demoOpen').click(); // Open the dock before operating its hidden form control.
  await page.locator('#demoVoiceSource').selectOption('neural');
  await expect(page.locator('#demoVoiceSource')).toHaveValue('neural');
 });
