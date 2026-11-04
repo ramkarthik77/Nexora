@@ -18,6 +18,8 @@
     const modelURL = opts.modelURL || DEFAULT_AVATAR;
     let head=null, tts=null, modelReady=false, voiceReady=false, disposed=false;
     let loadPromise=null, voicePromise=null, turn=0, active=false;
+    // Cache only the five public scripted answers, never arbitrary user/AI speech.
+    const audioCache=new Map();
     const status = text => opts.onStatus?.(text);
     const report = (phase,detail='') => opts.onProgress?.({phase,detail});
     const safeCall = (method,...args) => {try{return head && typeof head[method]==='function' ? head[method](...args) : undefined;} catch(err){console.warn('Nexora 3D '+method+' unavailable:',err);return undefined;}};
@@ -94,27 +96,55 @@
       })();
       return voicePromise;
     }
+    function primeAudio(){
+      // Invoke during the user's click to satisfy autoplay policies before async model work.
+      const ctx=head?.audioCtx;
+      if(ctx?.state==='suspended')void ctx.resume().catch(()=>status('Tap REPLAY to enable audio'));
+    }
     async function speak(text,{voice='female',onWord,onStart,onEnd}={}){
       const message=String(text||'').trim().slice(0,900);
       if(!message)return false;
       const token=++turn;
+      primeAudio();
       await ensureVoice();
       if(token!==turn||disposed)return false;
-      tts.setup({voice:VOICES[voice]||VOICES.female,language:'en-us',speed:.97,audioEncoding:'wav'});
-      status('Generating neural speech locally…');
-      const results=await tts.synthesize({input:message});
+      await tts.setup({voice:VOICES[voice]||VOICES.female,language:'en-us',speed:.97,audioEncoding:'wav'});
       if(token!==turn||disposed)return false;
-      const errors=(results||[]).filter(x=>x.type==='error');
-      if(errors.length)throw new Error(errors[0]?.data?.error||'Neural speech failed');
-      const chunks=(results||[]).filter(x=>x.type==='audio'&&x.data?.audio);
-      if(!chunks.length)throw new Error('Neural voice produced no audio');
-      opts.onSpeechState?.('speaking');onStart?.();
-      status('Speaking · neural voice with timed lip sync');
-      safeCall('makeEyeContact',1800);
-      safeCall('playGesture','side',2.5);
+      status('Preparing first words…');
+      let queued=0,started=false,firstError=null;
+      const enqueueAudio=msg=>{
+        if(token!==turn||disposed)return;
+        if(msg?.type==='error'){
+          firstError=msg.data?.error||'Neural speech failed';
+          return;
+        }
+        if(msg?.type!=='audio'||!msg.data?.audio)return;
+        if(!started){
+          started=true;
+          opts.onSpeechState?.('speaking');onStart?.();
+          status('Speaking · neural voice with timed lip sync');
+          safeCall('makeEyeContact',1800);
+          safeCall('playGesture','side',2.5);
+        }
+        queued++;
+        safeCall('speakAudio',msg.data,{lipsyncLang:'en'},word=>{if(token===turn)onWord?.(word);});
+      };
+      // Start playback with the first chunk instead of waiting for the full answer.
+      // Replays of the five scripted questions use in-memory audio instantly.
+      const cached=audioCache.get(message);
+      const results=cached || await tts.synthesize({input:message},enqueueAudio);
+      if(token!==turn||disposed)return false;
+      if(firstError)throw new Error(firstError);
+      if(!queued)for(const item of results||[])enqueueAudio(item);
+      const isDemoAnswer=root.NexoraDemo?.questions?.some(q=>q.answer===message);
+      if(!cached && isDemoAnswer && (results||[]).some(x=>x.type==='audio'&&x.data?.audio)){
+        if(audioCache.size>=5)audioCache.delete(audioCache.keys().next().value);
+        audioCache.set(message,results.filter(x=>x.type==='audio'));
+      }
+      if(firstError)throw new Error(firstError);
+      if(!queued)throw new Error('Neural voice produced no audio');
       let resolveEnd;
       const done=new Promise(resolve=>{resolveEnd=resolve;});
-      chunks.forEach(msg=>safeCall('speakAudio',msg.data,{lipsyncLang:'en'},word=>{if(token===turn)onWord?.(word);}));
       safeCall('speakMarker',()=>{if(token===turn){opts.onSpeechState?.('idle');onEnd?.();status('Ready for another question');}resolveEnd(token===turn);});
       // A failed mixer/paused tab must not leave an eternally pending conversation.
       const timeout=Math.min(120000,Math.max(16000,message.length*190));
@@ -127,6 +157,9 @@
     }
     function stopSpeech(){
       turn++;
+      // Clear pending TTS requests when switching questions; otherwise old requests
+      // keep occupying the inference queue and every new answer feels delayed.
+      try{tts?.clear?.();}catch{}
       safeCall('stopSpeaking');
       opts.onSpeechState?.('idle');
     }
@@ -140,7 +173,7 @@
     }
     function look(x,y){if(modelReady)safeCall('lookAt',Math.max(0,Math.min(1,x)),Math.max(0,Math.min(1,y)),650);}
     function destroy(){disposed=true;stopSpeech();safeCall('stop');container.replaceChildren();}
-    return {load,ensureVoice,speak,stopSpeech,setActive,interact,look,destroy,
+    return {load,ensureVoice,speak,primeAudio,stopSpeech,setActive,interact,look,destroy,
       get ready(){return modelReady;},get voiceReady(){return voiceReady;},get isSupported(){return isSupported();},
     };
   }

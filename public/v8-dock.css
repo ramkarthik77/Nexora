@@ -1,0 +1,10 @@
+/* V8: Dock mock conversation outside avatar so the face remains visible. */
+#demoPanel.demo-panel{position:fixed!important;inset:88px 16px 18px auto!important;transform:none!important;width:min(370px,calc(100vw - 32px))!important;max-height:calc(100dvh - 106px)!important;overflow:auto;overscroll-behavior:contain;z-index:100!important;box-shadow:0 22px 70px rgba(0,0,0,.82),0 0 25px rgba(62,186,229,.1)}
+#demoPanel .demo-question-list{display:grid;grid-template-columns:1fr;gap:5px}
+#demoPanel .demo-question-list button{padding:8px 11px;font-size:11px;line-height:1.35}
+#demoPanel .demo-response{max-height:148px;overflow:auto}
+#demoPanel .demo-voice-config{margin-top:9px}
+#demoPanel .demo-actions{gap:5px}
+#demoPanel .demo-actions #demoVoiceStatus{flex-basis:100%;margin-left:0}
+@media(min-width:1250px){#demoPanel.demo-panel{width:min(395px,32vw)!important}}
+@media(max-width:740px){#demoPanel.demo-panel{inset:auto 10px 70px 10px!important;width:auto!important;max-height:min(41dvh,370px)!important;padding:12px!important;border-radius:14px!important}#demoPanel h2{font-size:18px;margin:4px 0 6px}#demoPanel .demo-question-list{grid-template-columns:1fr 1fr}#demoPanel .demo-question-list button{font-size:9px;padding:7px}#demoPanel .demo-response{max-height:62px;min-height:0;overflow:auto;padding:6px}#demoPanel .demo-response p{font-size:10px;line-height:1.45}#demoPanel .demo-voice-config{gap:3px 6px;margin-top:7px}}

@@ -23,7 +23,8 @@ function mocks({failLoad=false,delaySynthesis=false}={}){
     constructor(config){calls.push(['ttsInit',config.endpoints]);}
     async connect(){calls.push(['ttsConnect']);}
     setup(config){calls.push(['ttsSetup',config.voice]);}
-    async synthesize({input}){calls.push(['synthesize',input]);if(delaySynthesis)await new Promise(resolve=>{finishSynthesis=resolve;});return [{type:'audio',data:{audio:{},visemes:['aa'],vtimes:[0],vdurations:[220]}}];}
+    async synthesize({input},onmessage){calls.push(['synthesize',input]);if(delaySynthesis)await new Promise(resolve=>{finishSynthesis=resolve;});const msg={type:'audio',data:{audio:{},visemes:['aa'],vtimes:[0],vdurations:[220]}};onmessage?.(msg);return [msg];}
+    clear(){calls.push(['clearTTS']);}
   }
   const container={replaceChildren(){calls.push(['clear']);}};
   const events=[];
@@ -80,4 +81,34 @@ test('load errors can be handled without lying about 3D availability',async()=>{
   const {avatar}=mocks({failLoad:true});
   await assert.rejects(avatar.load(),/model not reachable/);
   assert.equal(avatar.ready,false);
+});
+
+
+test('streams speech to 3D before the full synthesis promise resolves',async()=>{
+  const calls=[];let release;
+  class Head{constructor(){this.audioCtx={state:'running'};}async showAvatar(){}
+    setView(){}stop(){}speakAudio(){calls.push('play');}speakMarker(fn){queueMicrotask(fn);}stopSpeaking(){}}
+  class TTS{async connect(){}async setup(){}clear(){}
+    async synthesize({input},onmessage){onmessage({type:'audio',data:{audio:{}}});await new Promise(r=>release=r);return [];}
+  }
+  const instance=create({replaceChildren(){}},{forceSupported:true,loadHead:async()=>({TalkingHead:Head}),loadTTS:async()=>({HeadTTS:TTS})});
+  await instance.ensureVoice();
+  const speaking=instance.speak('Hello there');
+  for(let i=0;i<10&&!release;i++)await new Promise(r=>setImmediate(r));
+  assert.equal(calls.includes('play'),true,'audio should begin before generation finishes');
+  release();
+  assert.equal(await speaking,true);
+});
+
+
+test('replaying a scripted answer uses cached neural audio',async()=>{
+  const saved=globalThis.NexoraDemo;globalThis.NexoraDemo={questions:[{answer:'A prepared mock response.'}]};
+  try{
+    const {avatar,calls}=mocks();
+    await avatar.load();
+    assert.equal(await avatar.speak('A prepared mock response.'),true);
+    assert.equal(await avatar.speak('A prepared mock response.'),true);
+    assert.equal(calls.filter(x=>x[0]==='synthesize').length,1);
+    assert.equal(calls.filter(x=>x[0]==='speakAudio').length,2);
+  }finally{if(saved===undefined)delete globalThis.NexoraDemo;else globalThis.NexoraDemo=saved;}
 });
