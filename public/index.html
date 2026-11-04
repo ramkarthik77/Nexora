@@ -54,7 +54,7 @@
       </div>
       <div class="header-right">
         <span class="header-build">CLOUDFLARE PREVIEW</span>
-        <div class="status-pill"><span class="small-green-dot"></span> AVATAR V5 · VOICE DEMO</div>
+        <div class="status-pill"><span class="small-green-dot"></span> AVATAR V7 · LIVE 3D + KOKORO</div>
         <div class="top-avatar">N</div>
       </div>
     </header>
@@ -79,13 +79,13 @@
 
         <div class="universe" id="universe">
           <div class="humanoid-shell" id="humanoidShell" data-visual="portrait" aria-label="Original interactive cinematic and particle humanoid">
-            <div class="avatar-art" aria-hidden="true"><img class="avatar-image" src="./nexora-avatar.webp" alt="" /><canvas id="avatarMotion" class="avatar-motion" aria-hidden="true"></canvas></div><canvas id="avatarEffects" class="avatar-effects" aria-hidden="true"></canvas><canvas id="humanoidCanvas" class="humanoid-canvas" aria-label="Interactive 3D-projected point cloud humanoid" role="img"></canvas>
+            <div id="liveAvatar" class="live-3d-avatar" aria-label="Interactive rigged 3D humanoid. Drag to rotate, scroll to zoom, double click to greet."></div><div id="liveAvatarStatus" class="live-3d-status" role="status" aria-live="polite">Select LIVE 3D to load an interactive rigged avatar · CC0 prototype model</div><div id="avatarInteractionTarget" class="avatar-interaction-target" tabindex="0" role="button" aria-label="Interact with Nexora avatar. Click to greet, drag to turn head, or press Enter to hear an introduction."><span class="avatar-interaction-cue">✧ FACE TRACKING · CLICK TO GREET · DRAG TO TURN</span></div><div class="avatar-art" aria-hidden="true"><img class="avatar-image" src="./nexora-avatar.webp" alt="" /><canvas id="avatarMotion" class="avatar-motion" aria-hidden="true"></canvas></div><canvas id="avatarEffects" class="avatar-effects" aria-hidden="true"></canvas><canvas id="humanoidCanvas" class="humanoid-canvas" aria-label="Interactive 3D-projected point cloud humanoid" role="img"></canvas>
             <div class="humanoid-left-ui">
               <div class="hud-micro">PRESENCE ENGINE <span>// 01</span></div>
               <div class="hud-name">A mind<br>in motion<span>.</span></div>
               <div class="hud-copy">An intelligence you can see, speak to and explore.<br>Built for your engineering world.</div>
               <div class="hud-divider"></div>
-              <div class="hud-coordinate">NX — 04<br>CINEMATIC PRESENCE / GPU PARTICLES<br>ORIGINAL ARTWORK &amp; CODE</div><button id="aemHudButton" type="button" class="hud-aem-button">◉ AEM CLOUD OPERATIONS <span>120 synthetic sites · Explore dashboard →</span></button><button id="demoOpen" type="button" class="hud-demo-button"><span class="demo-button-dot"></span> TEST VOICE CONVERSATION <small>5 scripted questions · no AI key needed</small></button>
+              <div class="hud-coordinate">NX — 04<br>CINEMATIC PRESENCE / GPU PARTICLES<br>ORIGINAL ARTWORK &amp; CODE</div><button id="aemHudButton" type="button" class="hud-aem-button">◉ AEM CLOUD OPERATIONS <span>120 synthetic sites · Explore dashboard →</span></button><button id="live3dOpen" type="button" class="hud-demo-button live3d-open">✦ ACTIVATE LIVE 3D AVATAR <small>Rigged face · camera motion · Kokoro lips</small></button><button id="demoOpen" type="button" class="hud-demo-button"><span class="demo-button-dot"></span> TEST VOICE CONVERSATION <small>5 scripted questions · no AI key needed</small></button>
             </div>
             <div class="humanoid-right-ui">
               <div class="hud-micro">NEURAL INTERFACE <span>● ACTIVE</span></div>
@@ -99,7 +99,7 @@
               </div>
               <div class="visual-switch" role="group" aria-label="Avatar rendering style">
                 <button type="button" data-visual="portrait" class="selected">CINEMATIC</button>
-                <button type="button" data-visual="particles">3D PARTICLES</button>
+                <button type="button" data-visual="particles">3D PARTICLES</button><button type="button" data-visual="live" aria-label="Load live 3D rigged avatar">LIVE 3D ✦</button>
               </div>
               <button class="hud-connect" id="humanoidAsk" type="button">OPEN AI ASSISTANT ↗</button>
               <div class="hud-disclaimer">INTERACTION DEMO · CLOUD AI REQUIRES WORKER DEPLOYMENT</div>
@@ -110,14 +110,14 @@
               <div class="demo-response" role="status" aria-live="polite"><span class="demo-response-label" id="demoResponseLabel">READY FOR A QUESTION</span><p id="demoResponse">Choose a question. Use free device voices or an optional natural studio voice with timed mouth movement.</p></div>
               <div class="demo-voice-config">
                 <label for="demoVoiceSource">VOICE ENGINE</label>
-                <select id="demoVoiceSource" aria-label="Voice engine"><option value="browser">Device voice · free</option><option value="studio" disabled>Studio natural voice · requires setup</option></select>
+                <select id="demoVoiceSource" aria-label="Voice engine"><option value="browser">Device voice · basic</option><option value="neural">Kokoro neural · real lip sync (local)</option><option value="studio" disabled>Studio natural voice · requires setup</option></select>
                 <label for="demoBrowserVoice">VOICE PROFILE</label>
                 <select id="demoBrowserVoice" aria-label="Installed voice profile"><option value="auto">Best available English voice</option></select>
                 <label for="demoVoiceAccess" id="demoVoiceAccessLabel" class="hidden">PRIVATE STUDIO ACCESS CODE</label>
                 <input id="demoVoiceAccess" class="hidden" type="password" autocomplete="off" placeholder="Enter private demo access code" aria-label="Private studio voice access code" maxlength="256" />
                 <small id="demoVoiceHint">Choose an installed voice. Premium natural speech requires an optional protected voice service.</small>
               </div>
-              <div class="demo-actions"><button id="demoVoiceToggle" type="button">◉ VOICE ON</button><button id="demoReplay" type="button" disabled>↻ REPLAY ANSWER</button><button id="demoStop" type="button">■ STOP</button><span id="demoVoiceStatus" aria-live="polite">SCRIPTED DEMO</span></div>
+              <div class="demo-actions"><button id="demoVoiceToggle" type="button">◉ VOICE ON</button><button id="demoReplay" type="button" disabled>↻ REPLAY ANSWER</button><button id="demoListen" type="button" aria-label="Ask Nexora a mock question with microphone">🎙 ASK BY VOICE</button><button id="demoStop" type="button">■ STOP</button><span id="demoVoiceStatus" aria-live="polite">SCRIPTED DEMO</span></div><div class="demo-speech-track" aria-hidden="true"><span id="demoSpeechProgress"></span></div><div class="demo-live-caption" id="demoLiveCaption" aria-live="off">Click the avatar, ask by microphone, or select a question.</div>
             </section>
             <div class="humanoid-bottom"><span class="hud-micro">◈ ORIGINAL NEXORA PRESENCE SYSTEM</span><span>MOVE POINTER FOR PARALLAX · PARTICLE MODE HAS 3D ROTATION</span></div>
           </div>
@@ -217,6 +217,8 @@
 <script src="./mock-conversation.js" defer></script>
 <script src="./avatar-motion.js" defer></script>
 <script src="./humanoid.js" defer></script>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186/build/three.module.js/+esm", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186/examples/jsm/", "talkinghead": "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.8/modules/talkinghead.mjs" } }</script>
+<script src="./live-avatar.js" defer></script>
 <script src="./voice-engine.js" defer></script>
 <script src="./app.js" defer></script>
 </body>

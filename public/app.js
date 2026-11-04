@@ -18,19 +18,19 @@ const state = {
  notes:read('notes',[]),events:read('events',[]),messages:read('messages',[]).slice(-30),
  weather:null,github:null,aem:null,aemScenario:'healthy',geo:null,backend:null,recognized:null,busy:false
 };
-let toastTimeout, rafId, humanoidEngine, avatarMotion, speechIdleTimer, voiceEngine;
+let toastTimeout, rafId, humanoidEngine, avatarMotion, speechIdleTimer, voiceEngine, liveAvatar;
 let currentDemoAnswer='', currentDemoId='', demoVoiceEnabled=true;
 function voiceStatus(message){const el=$('demoVoiceStatus');if(el)el.textContent=message;}
 function stopVoice(){
  clearTimeout(speechIdleTimer);voiceEngine?.stop();
- avatarMotion?.setSpeaking(false);
+ avatarMotion?.setSpeaking(false);liveAvatar?.stopSpeech();
  if(!state.recognized)setHumanoidState('idle');
  voiceStatus('STOPPED');
 }
 function speakAnswer(answer,{speak=false,demoId=null}={}){
  clearTimeout(speechIdleTimer);
  if(!speak){
-  voiceEngine?.stop();setHumanoidState('speaking');avatarMotion?.setSpeaking(true);
+  voiceEngine?.stop();setHumanoidState('speaking');avatarMotion?.setSpeaking(true);liveAvatar?.interact('greet');
   voiceStatus('VOICE OFF · ANIMATION PREVIEW');
   speechIdleTimer=setTimeout(()=>{avatarMotion?.setSpeaking(false);setHumanoidState('idle');},1500);
   return;
@@ -66,10 +66,13 @@ function setupVoiceSelectors(){
  source.addEventListener('change',()=>{
   const mode=voiceEngine?.setSource(source.value)||'browser';
   source.value=mode;stopVoice();
-  const studio=mode==='studio';
-  profile.classList.toggle('hidden',studio);profile.previousElementSibling?.classList.toggle('hidden',studio);
+  const studio=mode==='studio',neural=mode==='neural';
+  if(neural)void setVisual('live');
+  profile.classList.toggle('hidden',studio||neural);profile.previousElementSibling?.classList.toggle('hidden',studio||neural);
   access.classList.toggle('hidden',!studio);accessLabel.classList.toggle('hidden',!studio);
-  hint.textContent=studio?'Five fixed mock answers only. A private code protects the paid TTS endpoint. Character timings drive approximate lip motion.':'Browser voice quality depends on installed OS voices. No API key or network speech request is required.';
+  hint.textContent=studio?'Five mock answers only. A private code protects paid speech; timings drive approximate lip movement.':
+   neural?'Kokoro neural voice runs locally. Select LIVE 3D to load a CC0 rigged face. First use downloads substantial 3D and speech models; performance depends on your device.':
+   'Device voice quality depends on your computer. Choose Local Neural for a more human-sounding free voice (one-time model download).';
  });
  profile.addEventListener('change',()=>{voiceEngine?.setBrowserVoice(profile.value);stopVoice();voiceStatus('DEVICE VOICE SELECTED');});
  const refresh=()=>voiceEngine?.availableVoices();
@@ -94,24 +97,62 @@ function setupDemo(){
  $('demoOpen').setAttribute('aria-expanded','false');
  $('demoOpen').addEventListener('click',()=>{const showing=!$('demoPanel').classList.contains('hidden');if(showing)hideDemo();else showDemo();});
  $('demoClose').addEventListener('click',hideDemo);
+ $('live3dOpen').addEventListener('click',()=>{void setVisual('live');});
  $('demoVoiceToggle').addEventListener('click',()=>{demoVoiceEnabled=!demoVoiceEnabled;$('demoVoiceToggle').textContent=demoVoiceEnabled?'◉ VOICE ON':'○ VOICE OFF';$('demoVoiceToggle').setAttribute('aria-pressed',String(demoVoiceEnabled));if(!demoVoiceEnabled)stopVoice();else voiceStatus('VOICE ENABLED');});
  $('demoVoiceToggle').setAttribute('aria-pressed','true');
  $('demoReplay').addEventListener('click',()=>{if(currentDemoAnswer)speakAnswer(currentDemoAnswer,{speak:demoVoiceEnabled,demoId:currentDemoId});});
  $('demoStop').addEventListener('click',stopVoice);
+ $('demoListen').addEventListener('click',()=>{stopVoice();speakCommand();});
 }
 
 function setHumanoidState(next){if(!humanoidEngine)return;humanoidEngine.setMode(next);}
-function onHumanoidState(next){$('humanoidState').textContent=next.toUpperCase();$('humanoidDescription').textContent=({idle:'Move your pointer to explore the light field.',listening:'Listening mode. Cyan energy field activated.',thinking:'Processing the request through available tools.',speaking:'Speaking animation. Amber pulses follow the response.'})[next]||'Ready';document.querySelectorAll('[data-humanoid-state]').forEach(b=>b.classList.toggle('active',b.dataset.humanoidState===next));$('humanoidShell').dataset.mode=next;if(next!=='speaking')avatarMotion?.setSpeaking(false);}
+function onHumanoidState(next){if(next==='thinking')liveAvatar?.interact('thinking');$('humanoidState').textContent=next.toUpperCase();$('humanoidDescription').textContent=({idle:'Move your pointer to explore the light field.',listening:'Listening mode. Cyan energy field activated.',thinking:'Processing the request through available tools.',speaking:'Speaking animation. Amber pulses follow the response.'})[next]||'Ready';document.querySelectorAll('[data-humanoid-state]').forEach(b=>b.classList.toggle('active',b.dataset.humanoidState===next));$('humanoidShell').dataset.mode=next;if(next!=='speaking')avatarMotion?.setSpeaking(false);}
 function svg(id){return `<svg aria-hidden="true"><use href="#${id}"/></svg>`;}
 function safe(str){return String(str??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
 function toast(message){const el=$('toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),3200);}
-function setVisual(visual){
- if(!['portrait','particles'].includes(visual))return;
- $('humanoidShell').dataset.visual=visual;
- document.querySelectorAll('[data-visual]').forEach(b=>b.classList.toggle('selected',b.dataset.visual===visual));
- if(humanoidEngine)humanoidEngine.setVisible(state.view==='humanoid'&&visual==='particles');
+async function setVisual(visual){
+ if(!['portrait','particles','live'].includes(visual))return;
+ const shell=$('humanoidShell');
+ // Use neural Kokoro as the default *when the user chooses* real 3D.
+ const source=$('demoVoiceSource'),browserVoice=$('demoBrowserVoice');
+ if(visual==='live'&&voiceEngine?.source==='browser'){
+  voiceEngine.setSource('neural');source.value='neural';
+  browserVoice.classList.add('hidden');browserVoice.previousElementSibling?.classList.add('hidden');
+  $('demoVoiceHint').textContent='Kokoro neural speech runs on this device. First use downloads its model; visemes drive 3D lip sync.';
+ }else if(visual!=='live'&&voiceEngine?.source==='neural'){
+  voiceEngine.setSource('browser');source.value='browser';
+  browserVoice.classList.remove('hidden');browserVoice.previousElementSibling?.classList.remove('hidden');
+  $('demoVoiceHint').textContent='Device voice is a compatibility fallback. Select LIVE 3D for natural local speech.';
+ }
+ const apply=v=>{
+  shell.dataset.visual=v;
+  document.querySelectorAll('.visual-switch [data-visual]').forEach(b=>b.classList.toggle('selected',b.dataset.visual===v));
+  humanoidEngine?.setVisible(state.view==='humanoid'&&v==='particles');
+  liveAvatar?.setActive(state.view==='humanoid'&&v==='live');
+ };
+ apply(visual);
+ if(visual==='live'){
+  const notice=$('liveAvatarStatus');
+  const button=document.querySelector('.visual-switch [data-visual="live"]');
+  if(!liveAvatar?.isSupported){
+   notice.textContent='Live 3D needs WebGL · showing cinematic portrait instead';
+   voiceEngine?.setSource('browser');source.value='browser';apply('portrait');return;
+  }
+  if(liveAvatar.ready){notice.textContent='3D READY · DRAG TO ROTATE · SCROLL TO ZOOM';return;}
+  button.disabled=true;
+  notice.textContent='LOADING 3D CHARACTER · FIRST DOWNLOAD IS LARGE';
+  try{
+   await liveAvatar.load();
+   if(shell.dataset.visual==='live'){
+    liveAvatar.setActive(true);notice.textContent='3D READY · DRAG TO ROTATE · SCROLL TO ZOOM';
+   }
+  }catch(error){
+   notice.textContent='3D UNAVAILABLE · '+String(error?.message||'MODEL FAILED').slice(0,85);
+   if(shell.dataset.visual==='live'){voiceEngine?.setSource('browser');source.value='browser';browserVoice.classList.remove('hidden');browserVoice.previousElementSibling?.classList.remove('hidden');apply('portrait');}
+  }finally{button.disabled=false;}
+ }
 }
-function setView(mode){if(!['humanoid','spatial','focus','grid'].includes(mode))return;state.view=mode;const stage=$('stage');stage.classList.remove('view-humanoid','view-spatial','view-focus','view-grid');stage.classList.add('view-'+mode);document.querySelectorAll('[data-view]').forEach(btn=>btn.classList.toggle('current',btn.dataset.view===mode));$('navHome').classList.toggle('selected',mode==='humanoid'||mode==='spatial');$('navGrid').classList.toggle('selected',mode==='grid');if(humanoidEngine)humanoidEngine.setVisible(mode==='humanoid'&&$('humanoidShell').dataset.visual==='particles');placeModules();}
+function setView(mode){if(!['humanoid','spatial','focus','grid'].includes(mode))return;state.view=mode;const stage=$('stage');stage.classList.remove('view-humanoid','view-spatial','view-focus','view-grid');stage.classList.add('view-'+mode);document.querySelectorAll('[data-view]').forEach(btn=>btn.classList.toggle('current',btn.dataset.view===mode));$('navHome').classList.toggle('selected',mode==='humanoid'||mode==='spatial');$('navGrid').classList.toggle('selected',mode==='grid');if(humanoidEngine)humanoidEngine.setVisible(mode==='humanoid'&&$('humanoidShell').dataset.visual==='particles');liveAvatar?.setActive(mode==='humanoid'&&$('humanoidShell').dataset.visual==='live');placeModules();}
 function selectModule(id){if(!modules.some(m=>m.id===id))return;state.selected=id;document.querySelectorAll('.module-card').forEach(card=>card.classList.toggle('active',card.dataset.module===id));renderSignal();}
 function moduleCard(m,i){const button=document.createElement('button');button.className='module-card';button.type='button';button.dataset.module=m.id;button.setAttribute('aria-label','Inspect '+m.name);button.innerHTML=`<div class="module-header"><span class="module-icon">${svg(m.icon)}</span><span class="module-num">0${i+1}</span></div><div class="module-title">${safe(m.name)}</div><div class="module-sub">${safe(m.sub)}</div>${svg('i-chevron').replace('<svg ','<svg class="module-chevron" ')}`;button.addEventListener('click',()=>{selectModule(m.id);if(matchMedia('(max-width:1130px)').matches)toast(m.name+' selected — inspect details on larger screens or use quick commands');});return button;}
 modules.forEach((m,i)=>$('orbitCards').appendChild(moduleCard(m,i)));
@@ -153,7 +194,15 @@ function resolveLocal(input){const q=input.trim(),s=q.toLowerCase();if(/^(open|s
  if(/^(clear conversation|clear chat)$/.test(s)){state.messages=[];persistMessages();return 'Conversation history cleared on this device.';}
  return null;
 }
-async function sendCommand(input){const command=String(input??'').trim();if(!command||state.busy)return;const demo=window.NexoraDemo?.resolve(command);if(demo){$('commandInput').value='';$('drawerChatInput').value='';closeOverlay('chatOverlay');playDemoQuestion(demo.id);return;}state.busy=true;setHumanoidState('thinking');openOverlay('chatOverlay');pushMessage('user',command);$('commandInput').value='';$('drawerChatInput').value='';$('sendBtn').disabled=true;
+async function sendCommand(input){const command=String(input??'').trim();if(!command||state.busy)return;const demo=window.NexoraDemo?.resolve(command);if(demo){$('commandInput').value='';$('drawerChatInput').value='';closeOverlay('chatOverlay');playDemoQuestion(demo.id);return;}
+ if(!$('demoPanel').classList.contains('hidden')){
+  const answer='I can answer five scripted questions in this demo. Try asking who I am, how many sites I monitor, what happened in an incident, how many deployments occurred, or whether I can talk.';
+  $('demoResponseLabel').textContent='NEXORA · MOCK MODE';$('demoResponse').textContent=answer;
+  $('commandInput').value='';$('drawerChatInput').value='';
+  currentDemoAnswer=answer;currentDemoId='';
+  pushMessage('user',command);pushMessage('assistant',answer,{speak:demoVoiceEnabled});return;
+ }
+ state.busy=true;setHumanoidState('thinking');openOverlay('chatOverlay');pushMessage('user',command);$('commandInput').value='';$('drawerChatInput').value='';$('sendBtn').disabled=true;
  try{const local=resolveLocal(command);if(local!==null){pushMessage('assistant',local);return;}
  if(!state.backend?.aiConfigured){pushMessage('assistant','The conversational AI is not connected yet. Add an ANTHROPIC_API_KEY Worker secret and deploy the app to Cloudflare to enable AI responses. Local workspace commands already work. Open Settings for connection status.');return;}
  const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:command,messages:state.messages.filter(m=>m.role==='user'||m.role==='assistant').slice(-12)})});const data=await response.json();if(!response.ok)throw Error(data.error||'AI service failed');pushMessage('assistant',data.answer||'No response returned.');
@@ -192,12 +241,51 @@ function startAvatarVisuals(){
  if(!ctx)return;
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  let pX=0,pY=0,xx=0,yy=0,tm=0;
+ const face=$('avatarInteractionTarget');
+ let dragStart=null,dragX=0,dragY=0,dragLookX=0,dragLookY=0;
+ function setLook(x,y){pX=Math.max(-1,Math.min(1,x));pY=Math.max(-1,Math.min(1,y));avatarMotion?.setLook?.(pX,pY);}
+ function resetLook(){dragX=0;dragY=0;setLook(0,0);}
+ if(face){
+  face.addEventListener('pointerdown',e=>{
+   if(e.button!==0)return;
+   dragStart={x:e.clientX,y:e.clientY,moved:false};
+   face.setPointerCapture(e.pointerId);
+   face.classList.add('grabbing');
+   shell.dataset.interaction='dragging';
+   avatarMotion?.react?.('curious');
+  });
+  face.addEventListener('pointermove',e=>{
+   if(!dragStart)return;
+   const dx=e.clientX-dragStart.x,dy=e.clientY-dragStart.y;
+   if(Math.abs(dx)+Math.abs(dy)>8)dragStart.moved=true;
+   dragX=Math.max(-1,Math.min(1,dx/155));
+   dragY=Math.max(-1,Math.min(1,dy/190));
+   setLook(dragX,dragY);
+  });
+  face.addEventListener('pointerup',e=>{
+   const click=dragStart&&!dragStart.moved;
+   dragStart=null;face.classList.remove('grabbing');
+   shell.dataset.interaction='idle';
+   if(face.hasPointerCapture(e.pointerId))face.releasePointerCapture(e.pointerId);
+   if(click){avatarMotion?.react?.('greet');playDemoQuestion('identity');}
+  });
+  face.addEventListener('pointercancel',()=>{dragStart=null;face.classList.remove('grabbing');shell.dataset.interaction='idle';resetLook();});
+  face.addEventListener('dblclick',()=>{resetLook();avatarMotion?.react?.('greet');});
+  face.addEventListener('keydown',e=>{
+   if(e.key==='Enter'||e.key===' '){e.preventDefault();playDemoQuestion('identity');}
+   if(e.key==='ArrowLeft'){e.preventDefault();setLook(-.7,pY);}
+   if(e.key==='ArrowRight'){e.preventDefault();setLook(.7,pY);}
+   if(e.key==='Escape'){e.preventDefault();resetLook();}
+  });
+ }
+
  const motes=Array.from({length:175},(_,i)=>({x:Math.random(),y:Math.random(),size:.5+Math.random()*1.7,rate:.1+Math.random()*.24,ph:Math.random()*6.283,amber:Math.random()>.74}));
  shell.addEventListener('pointermove',e=>{
   if(shell.dataset.visual!=='portrait')return;
-  const r=shell.getBoundingClientRect();pX=((e.clientX-r.left)/r.width-.5)*2;pY=((e.clientY-r.top)/r.height-.5)*2;
+  if(dragStart)return;
+  const r=shell.getBoundingClientRect();setLook(((e.clientX-r.left)/r.width-.5)*2,((e.clientY-r.top)/r.height-.5)*2);
  });
- shell.addEventListener('pointerleave',()=>{pX=0;pY=0});
+ shell.addEventListener('pointerleave',()=>{if(!dragStart)resetLook();});
  let last=0;
  function paint(t){requestAnimationFrame(paint);
   if(shell.dataset.visual!=='portrait'||document.hidden||t-last<(reduced?145:38))return;last=t;
@@ -205,21 +293,24 @@ function startAvatarVisuals(){
   const w=Math.round(r.width*dpr),h=Math.round(r.height*dpr);
   if(layer.width!==w||layer.height!==h){layer.width=w;layer.height=h;ctx.setTransform(dpr,0,0,dpr,0,0);}
   const W=r.width,H=r.height;ctx.clearRect(0,0,W,H);
-  xx+=(pX-xx)*.055;yy+=(pY-yy)*.055;
-  shell.style.setProperty('--avatar-px',(xx*18).toFixed(1)+'px');
-  shell.style.setProperty('--avatar-py',(yy*9).toFixed(1)+'px');
-  shell.style.setProperty('--avatar-ry',(xx*6.3+(reduced?0:.62*Math.sin(t*.00067))).toFixed(2)+'deg');shell.style.setProperty('--avatar-rz',(yy*1.55+(reduced?0:.60*Math.sin(t*.00053))).toFixed(2)+'deg');
-  const mode=shell.dataset.mode||'idle';const active=mode==='listening'||mode==='thinking'||mode==='speaking';
+  xx+=(pX-xx)*.105;yy+=(pY-yy)*.105;
+  const active=!!dragStart;
+  shell.style.setProperty('--avatar-px',(xx*(active?27:20)).toFixed(1)+'px');
+  shell.style.setProperty('--avatar-py',(yy*(active?20:12)).toFixed(1)+'px');
+  shell.style.setProperty('--avatar-ry',(xx*(active?17:10)+(reduced?0:1.25*Math.sin(t*.00067))).toFixed(2)+'deg');
+  shell.style.setProperty('--avatar-rx',(-yy*(active?9:4)).toFixed(2)+'deg');
+  shell.style.setProperty('--avatar-rz',(yy*2.1+(reduced?0:1.0*Math.sin(t*.00053))).toFixed(2)+'deg');
+  const mode=shell.dataset.mode||'idle';const energised=mode==='listening'||mode==='thinking'||mode==='speaking';
   const pulse=mode==='speaking'? .40+.25*Math.sin(t*.013):mode==='thinking'?.20+.16*Math.sin(t*.004):mode==='listening'?.22+.16*Math.sin(t*.009):.03;
   const x=W*.5,y=H*.47;
   // Spaced concentric energy contours expand in the active states.
-  if(active){for(let k=0;k<3;k++){
+  if(energised){for(let k=0;k<3;k++){
    ctx.beginPath();ctx.strokeStyle=mode==='thinking'?'rgba(153,137,255,'+(.13+pulse*.16)+')':mode==='speaking'?'rgba(254,184,112,'+(.13+pulse*.16)+')':'rgba(100,240,255,'+(.11+pulse*.15)+')';
    ctx.lineWidth=.75;ctx.ellipse(x,y+H*.19,W*(.17+k*.055+pulse*.015),H*(.26+k*.065+pulse*.01),-.1,0,Math.PI*2);ctx.stroke();
   }}
   for(const m of motes){const drift=reduced?0:t*.00008*m.rate;
    const px=(m.x+.025*Math.sin(m.ph+drift*21))*W,py=((m.y+drift)%1)*H;
-   const alpha=(.12+.13*(.5+.5*Math.sin(t*.0019+m.ph)))*(active?1.55:1);
+   const alpha=(.12+.13*(.5+.5*Math.sin(t*.0019+m.ph)))*(energised?1.55:1);
    ctx.fillStyle=m.amber?'rgba(255,172,109,'+alpha+')':'rgba(91,227,248,'+alpha+')';
    ctx.fillRect(px,py,m.size,m.size);
   }
@@ -229,6 +320,8 @@ function startAvatarVisuals(){
 function wire(){setupDemo();document.querySelectorAll('.visual-switch [data-visual]').forEach(b=>b.addEventListener('click',()=>setVisual(b.dataset.visual)));document.querySelectorAll('.view-button').forEach(btn=>btn.addEventListener('click',()=>setView(btn.dataset.view)));$('navHome').addEventListener('click',()=>setView('humanoid'));$('navGrid').addEventListener('click',()=>setView('grid'));$('navAem').addEventListener('click',openAem);$('aemHudButton').addEventListener('click',openAem);$('navNotes').addEventListener('click',()=>{selectModule('notes');setView('grid');});$('navAssistant').addEventListener('click',()=>openOverlay('chatOverlay'));$('coreLabel').addEventListener('click',()=>openOverlay('chatOverlay'));$('assistantOpen').addEventListener('click',()=>openOverlay('chatOverlay'));$('settingsBtn').addEventListener('click',()=>openOverlay('settingsOverlay'));
  document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeOverlay(btn.dataset.close)));document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('mousedown',e=>{if(e.target===el)closeOverlay(el.id);}));document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeOverlay('chatOverlay');closeOverlay('settingsOverlay');closeOverlay('aemOverlay');if(!$('demoPanel').classList.contains('hidden'))hideDemo();}if(e.key==='/'&&!/input|textarea/i.test(document.activeElement.tagName)){e.preventDefault();$('commandInput').focus();}});
  $('commandForm').addEventListener('submit',e=>{e.preventDefault();sendCommand($('commandInput').value);});$('drawerChatForm').addEventListener('submit',e=>{e.preventDefault();sendCommand($('drawerChatInput').value);});$('micBtn').addEventListener('click',speakCommand);$('humanoidAsk').addEventListener('click',()=>openOverlay('chatOverlay'));document.querySelectorAll('[data-humanoid-state]').forEach(b=>b.addEventListener('click',()=>setHumanoidState(b.dataset.humanoidState)));$('humanoidCanvas').addEventListener('click',()=>{if(state.view==='humanoid')setHumanoidState(humanoidEngine?.getMode()==='listening'?'idle':'listening');});
+ $('liveAvatar').addEventListener('pointermove',e=>{if(!liveAvatar?.ready||e.buttons)return;const r=e.currentTarget.getBoundingClientRect();liveAvatar.look((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);});
+ $('liveAvatar').addEventListener('dblclick',()=>{if(liveAvatar?.ready){liveAvatar.interact('greet');playDemoQuestion('identity');}});
  document.querySelectorAll('.quick-command').forEach(btn=>btn.addEventListener('click',()=>sendCommand(btn.dataset.command)));document.querySelectorAll('[data-prompt]').forEach(btn=>btn.addEventListener('click',()=>sendCommand(btn.dataset.prompt)));
  $('saveSettings').addEventListener('click',()=>{const name=$('githubInput').value.trim();if(name&&!/^[a-zA-Z\d](?:[a-zA-Z\d-]{0,37}[a-zA-Z\d])?$/.test(name)){toast('Enter a valid GitHub username');return;}state.settings={github:name,speak:$('speakResponses').checked};save('settings',state.settings);closeOverlay('settingsOverlay');renderSignal();toast('Preferences saved');if(name)loadGithub();});$('aemRefresh').addEventListener('click',loadAem);$('aemScenario').addEventListener('change',e=>{state.aemScenario=e.target.value;loadAem();});$('weatherConnect').addEventListener('click',()=>{closeOverlay('settingsOverlay');selectModule('weather');loadWeather(true);});
  const univ=$('universe');let beginX=0,beginOrbit=0;univ.addEventListener('pointerdown',e=>{if(e.target.closest('button')||e.target.closest('.humanoid-shell'))return;state.dragging=true;beginX=e.clientX;beginOrbit=state.orbit;univ.setPointerCapture(e.pointerId);});univ.addEventListener('pointermove',e=>{if(!state.dragging||state.view!=='spatial')return;state.orbit=beginOrbit+(e.clientX-beginX)*.006;state.lastMove=performance.now();placeModules();});univ.addEventListener('pointerup',()=>{state.dragging=false;state.lastMove=performance.now();});univ.addEventListener('pointercancel',()=>state.dragging=false);
@@ -245,10 +338,18 @@ function renderOrb(){const canvas=$('orbCanvas');const ctx=canvas.getContext('2d
  };draw();}
 function heartbeat(){const now=new Date();const time=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});document.title=`Nexora Spatial — ${time}`;if(state.view==='spatial'&&!state.dragging&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&performance.now()-state.lastMove>5000){state.orbit+=.0005;placeModules();}}
 humanoidEngine=window.NexoraHumanoid?.init($('humanoidCanvas'),onHumanoidState);avatarMotion=window.NexoraAvatarMotion?.init($('avatarMotion'),document.querySelector('.avatar-image'),$('humanoidShell'));
-voiceEngine=window.NexoraVoice?.init({motion:avatarMotion,onState:setHumanoidState,onStatus:voiceStatus,onVoiceInfo(list){
+liveAvatar=window.NexoraLive3D?.create($('liveAvatar'),{
+ onStatus(message){const banner=$('liveAvatarStatus');if(banner)banner.textContent=message;},
+ onProgress({phase,detail}){if(phase==='error')voiceStatus('LIVE 3D · '+detail);},
+ onSpeechState:state=>setHumanoidState(state),
+});
+voiceEngine=window.NexoraVoice?.init({motion:avatarMotion,liveAvatar,onState:setHumanoidState,onStatus:voiceStatus,onProgress(data){
+ const bar=$('demoSpeechProgress');if(bar)bar.style.width=Math.round(100*Math.max(0,Math.min(1,data?.fraction||0)))+'%';
+ const text=$('demoLiveCaption');if(text&&data?.word)text.textContent=data.word;
+},onVoiceInfo(list){
  const sel=$('demoBrowserVoice');const current=sel.value||'auto';
  sel.replaceChildren(new Option('Best available English voice','auto'),...list.map(v=>new Option(v.label,v.id)));
  if([...sel.options].some(x=>x.value===current))sel.value=current;
 }});
-startAvatarVisuals();wire();selectModule('aem');placeModules();setView('humanoid');renderOrb();renderMessages();checkBackend();loadAem();if(state.settings.github)loadGithub();setInterval(heartbeat,120);window.addEventListener('beforeunload',()=>{cancelAnimationFrame(rafId);stopVoice();avatarMotion?.destroy();});
+startAvatarVisuals();wire();selectModule('aem');placeModules();setView('humanoid');renderOrb();renderMessages();checkBackend();loadAem();if(state.settings.github)loadGithub();setInterval(heartbeat,120);window.addEventListener('beforeunload',()=>{cancelAnimationFrame(rafId);stopVoice();avatarMotion?.destroy();liveAvatar?.destroy();});
 })();

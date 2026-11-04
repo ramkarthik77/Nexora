@@ -161,3 +161,45 @@ test('V6 natural voice option displays private token control only when configure
   await page.locator('#demoVoiceSource').selectOption('browser');
   await expect(page.locator('#demoVoiceAccess')).toBeHidden();
 });
+
+test('V7 live renderer opt-in connects mock questions to local viseme speech, not AI', async({page})=>{
+  // Browser wiring contract test. Real WebGL/CDN models are independently verified on supported devices.
+  await page.route('**/live-avatar.js',route=>route.fulfill({status:200,contentType:'text/javascript',body:`
+  window.__liveAvatarEvents=[];
+  window.NexoraLive3D={create:(container,callbacks)=>({
+    isSupported:true,ready:false,voiceReady:false,
+    async load(){window.__liveAvatarEvents.push('load');this.ready=true;callbacks.onStatus('3D READY');return true;},
+    setActive(active){window.__liveAvatarEvents.push('active:'+active);},
+    interact(gesture){window.__liveAvatarEvents.push('gesture:'+gesture);return true;},
+    look(){},stopSpeech(){},destroy(){},
+    async speak(text,{onStart,onWord,onEnd}={}){
+      window.__liveAvatarEvents.push('neural:'+text);
+      onStart?.();onWord?.('Welcome');onEnd?.();return true;
+    }
+  })};` }));
+  let calls=0;
+  page.on('request',request=>{if(request.url().includes('/api/chat'))calls++;});
+  await page.goto('/');
+  await page.locator('[data-visual="live"]').click();
+  await expect(page.locator('#humanoidShell')).toHaveAttribute('data-visual','live');
+  await expect(page.locator('#liveAvatarStatus')).toContainText('3D READY');
+  await expect(page.locator('.avatar-art')).toBeHidden();
+  await page.locator('#demoOpen').click();
+  await page.locator('#demoVoiceSource').selectOption('neural');
+  await page.locator('[data-demo-id="identity"]').click();
+  await expect.poll(async()=>page.evaluate(()=>window.__liveAvatarEvents.some(x=>x.startsWith('neural:')))).toBe(true);
+  expect(calls).toBe(0);
+  await expect(page.locator('#demoResponse')).toContainText('scripted demonstration');
+});
+
+test('V7 Live 3D keeps cinematic fallback when model fails', async({page})=>{
+  await page.route('**/live-avatar.js',route=>route.fulfill({status:200,contentType:'text/javascript',body:`
+  window.NexoraLive3D={create:()=>({isSupported:true,ready:false,
+    load(){return Promise.reject(new Error('model not reachable'));},setActive(){},stopSpeech(){},destroy(){},interact(){},look(){}
+  })};` }));
+  await page.goto('/');
+  await page.locator('[data-visual="live"]').click();
+  await expect(page.locator('#humanoidShell')).toHaveAttribute('data-visual','portrait');
+  await expect(page.locator('#liveAvatarStatus')).toContainText('model not reachable');
+  await expect(page.locator('.avatar-art')).toBeVisible();
+});

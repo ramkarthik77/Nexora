@@ -192,3 +192,32 @@ body:has(.stage.view-humanoid) .humanoid-left-ui{z-index:6}
 .demo-voice-config small{grid-column:1/-1;color:#91b5bd;font:400 10px/1.6 system-ui,sans-serif}
 .demo-voice-config input.hidden,.demo-voice-config label.hidden,.demo-voice-config select.hidden{display:none!important}
 @media(max-width:740px){.demo-voice-config{grid-template-columns:1fr;gap:5px}.demo-voice-config select,.demo-voice-config input{height:33px}.demo-panel{max-height:72svh}}
+
+/* V7: real interaction target, head/eye tracking and speech progress. */
+.humanoid-shell .avatar-art{transform:translateX(-50%) translate3d(var(--avatar-px,0px),var(--avatar-py,0px),0) rotateY(var(--avatar-ry,0deg)) rotateX(var(--avatar-rx,0deg)) rotateZ(var(--avatar-rz,0deg));transition:transform .08s ease-out,filter .35s;transform-style:preserve-3d;backface-visibility:hidden;}
+.avatar-interaction-target{position:absolute;z-index:5;left:32%;top:12%;width:37%;height:65%;border-radius:49% 49% 39% 39%;cursor:grab;touch-action:none;outline:none;}
+.avatar-interaction-target.grabbing{cursor:grabbing;}
+.avatar-interaction-target:focus-visible{outline:2px solid #97e7ff;outline-offset:5px;}
+.avatar-interaction-cue{pointer-events:none;position:absolute;top:5%;left:50%;transform:translateX(-50%) translateY(-3px);white-space:nowrap;opacity:0;font:700 8px/1.4 ui-monospace,Consolas,monospace;letter-spacing:1.1px;color:#a8edfc;background:rgba(4,20,33,.8);border:1px solid rgba(91,213,243,.3);padding:6px 9px;border-radius:100px;transition:opacity .2s,transform .2s;}
+.avatar-interaction-target:hover .avatar-interaction-cue,.avatar-interaction-target:focus-visible .avatar-interaction-cue,.avatar-interaction-target.grabbing .avatar-interaction-cue{opacity:1;transform:translateX(-50%) translateY(0);}
+.humanoid-shell[data-interaction="dragging"] .avatar-art{filter:drop-shadow(0 0 25px rgba(75,212,244,.24));}
+.demo-speech-track{height:3px;margin-top:10px;background:rgba(70,150,178,.18);border-radius:4px;overflow:hidden;}
+.demo-speech-track span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#63deed,#b0ffa7);box-shadow:0 0 12px rgba(116,245,242,.4);transition:width .09s linear;}
+.demo-live-caption{margin-top:6px;min-height:14px;color:#94bbcb;font:500 10px/1.5 system-ui,sans-serif;text-wrap:balance;}
+@media(max-width:740px){.avatar-interaction-target{left:29%;width:43%;top:17%;height:48%;}.avatar-interaction-cue{font-size:6px;top:0}.demo-live-caption{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.humanoid-shell .avatar-art{transition:none!important}.demo-speech-track span{transition:none!important}}
+
+/* V7: real rigged 3D presence (loaded only on explicit user action). */
+.live-3d-avatar{position:absolute;z-index:3;inset:2% 20% 4%;display:none;min-width:0;min-height:300px;touch-action:pan-y;cursor:grab;}
+.live-3d-avatar:active{cursor:grabbing;}
+.live-3d-avatar canvas{display:block!important;max-width:100%;max-height:100%;}
+.live-3d-status{display:none;position:absolute;z-index:8;bottom:14%;left:50%;transform:translateX(-50%);max-width:60%;min-width:180px;padding:8px 12px;border-radius:8px;text-align:center;background:rgba(5,21,34,.88);border:1px solid rgba(124,219,232,.28);font:600 10px/1.5 system-ui,sans-serif;color:#b3ebef;pointer-events:none;}
+.humanoid-shell[data-visual="live"] .live-3d-avatar,.humanoid-shell[data-visual="live"] .live-3d-status{display:block;}
+.humanoid-shell[data-visual="live"] .avatar-art,.humanoid-shell[data-visual="live"] .avatar-effects,.humanoid-shell[data-visual="live"] .avatar-interaction-target,.humanoid-shell[data-visual="live"] .humanoid-canvas{display:none!important;}
+.humanoid-shell[data-visual="live"] .live-3d-avatar{background:radial-gradient(ellipse at 54% 43%,rgba(25,71,98,.16),transparent 62%);}
+.visual-switch button:disabled{opacity:.52;cursor:wait;}
+@media(max-width:1080px){.live-3d-avatar{inset:5% 13% 11%;}.live-3d-status{bottom:7%;max-width:74%;}}
+@media(max-width:740px){.live-3d-avatar{inset:9% 0 33%;min-height:220px;}.live-3d-status{bottom:29%;min-width:200px;max-width:88%;font-size:9px;}}
+
+.hud-demo-button.live3d-open{margin-top:9px;background:linear-gradient(110deg,rgba(24,83,105,.43),rgba(48,59,96,.42));border-color:rgba(166,235,254,.5);color:#d9f9ff;}
+.hud-demo-button.live3d-open:hover,.hud-demo-button.live3d-open:focus-visible{background:rgba(54,121,150,.5);box-shadow:0 0 16px rgba(99,226,240,.15);}

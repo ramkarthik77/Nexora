@@ -265,3 +265,46 @@ Playback requires a user gesture. If the provider is unavailable, switch back to
 Security: the API returns `503` when disabled, `401` without the private token,
 `400` for an unrecognized question ID, and never forwards arbitrary client text.
 No Adobe credentials, company information, or live AEM data are involved.
+
+---
+
+## V7: Real 3D avatar + local neural speech (opt-in prototype)
+
+Select **LIVE 3D ✦** in the humanoid view. Nexora loads the MIT-licensed
+[TalkingHead](https://github.com/met4citizen/TalkingHead) renderer and its
+[MPFB demonstration avatar](https://github.com/met4citizen/TalkingHead/blob/main/avatars/mpfb.glb)
+under CC0. This is a rigged 3D character with eye contact, idle head movement,
+3D rotation/zoom and built-in ARKit/Oculus facial blend shapes, not the earlier
+animated 2D portrait. Double-click the rendered avatar to greet and try the
+five existing scripted questions. No LLM or Adobe credentials are required.
+
+Open **TEST VOICE CONVERSATION → Voice engine → Kokoro neural**. This activates
+LIVE 3D and, on the first spoken reply, initializes MIT-licensed
+[HeadTTS](https://github.com/met4citizen/HeadTTS), which uses the local
+Kokoro speech model. The generated audio, phoneme timestamps and viseme
+sequences are passed together to TalkingHead's `speakAudio` for synchronized
+mouth shapes. The prior **Device voice** and **Cinematic** modes remain
+available if WebGL, WebGPU, remote assets or local inference are blocked.
+
+**Important tradeoffs:** This is a working integration path, not a guarantee
+of photorealism, low-latency speech or universal browser support. The demo
+avatar is approximately 35 MB and currently served from the upstream project;
+Kokoro requires a substantial separate model download from Hugging Face on
+first use. These dependencies require network access even though synthesis
+runs locally afterward. Chrome/Edge with WebGPU offer the best chance of good
+performance; WASM fallback can be much slower. The default browser/device
+voice still has approximate 2D mouth timing, not true visemes. The bundled
+example character is an open-licensed demonstration character rather than a
+custom Nexora-branded human. For production, optimize and self-host a vetted,
+compatible 3D GLB and pin/host JS dependencies.
+
+In the local browser, check 3D load status in the banner; select Cinematic if
+the model fails. The default automated tests deliberately do not download the
+large ML/GLB assets and instead validate the integration and fallback with
+stubs. The Cloudflare CI pipeline tests local logic and browser wiring, while
+real on-device WebGL/WebGPU playback must be inspected separately.
+
+Third-party credits: TalkingHead (MIT), HeadTTS (MIT), MPFB example avatar
+(CC0, as documented by TalkingHead); Kokoro model components and voice files
+carry their own Apache/MIT-compatible notices. Do not repackage a
+noncommercial sample avatar as a production asset.

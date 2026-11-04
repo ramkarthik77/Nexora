@@ -35,7 +35,7 @@
     for(let i=0;i<text.length;i++)bytes[i]=text.charCodeAt(i);
     return new Blob([bytes],{type:'audio/mpeg'});
   }
-  function init({motion,onState,onStatus,onVoiceInfo}={}){
+  function init({motion,liveAvatar,onState,onStatus,onVoiceInfo}={}){
     let seq=0,controller=null,audioURL=null,raf=0,browserPulse=0,source='browser',selectedVoice='auto';
     let audio=null,audioContext=null,analyser=null,sourceNode=null,studioAvailable=false;
     let voices=[];
@@ -49,7 +49,7 @@
       try{window.speechSynthesis?.cancel();}catch{}
       if(audio){audio.pause();audio.removeAttribute('src');audio.load();}
       if(audioURL){URL.revokeObjectURL(audioURL);audioURL=null;}
-      motion?.setSpeaking(false);motion?.setMouth?.({open:0,round:0,wide:0});
+      motion?.setSpeaking(false);motion?.setMouth?.({open:0,round:0,wide:0});liveAvatar?.stopSpeech();
       setState('idle');
     }
     function finish(token,label='FINISHED · SELECT ANOTHER QUESTION'){
@@ -155,8 +155,24 @@
       };
       update();
     }
+    async function beginNeural(answer,token){
+      if(!liveAvatar){finish(token,'LIVE 3D ENGINE UNAVAILABLE · USE DEVICE VOICE');return;}
+      setState('thinking');status('INITIALIZING 3D + KOKORO · FIRST USE DOWNLOADS MODEL');
+      try{
+        await liveAvatar.speak(answer,{
+          onStart(){if(token===seq){setState('speaking');status('KOKORO NEURAL · REAL VISEME LIP SYNC');}},
+          onWord(word){if(token===seq)onStatus?.('SPEAKING · '+String(word).trim().slice(0,55));},
+          onEnd(){if(token===seq)finish(token);},
+        });
+        if(token===seq)finish(token);
+      }catch(error){
+        if(token!==seq)return;
+        finish(token,'NEURAL VOICE UNAVAILABLE: '+String(error?.message||'MODEL LOAD FAILED').slice(0,70)+' · SWITCH TO DEVICE VOICE');
+      }
+    }
     function say(text,{id=null}={}){
       stop();const token=seq;
+      if(source==='neural'){void beginNeural(text,token);return;}
       if(source==='studio'&&studioAvailable&&id){beginStudio(id,token);return;}
       beginBrowser(text,token);
     }
@@ -168,7 +184,7 @@
       }catch{studioAvailable=false;}
       return studioAvailable;
     }
-    function setSource(next){source=next==='studio'&&studioAvailable?'studio':'browser';return source;}
+    function setSource(next){source=next==='neural'?'neural':next==='studio'&&studioAvailable?'studio':'browser';return source;}
     return {say,stop,refreshStatus,availableVoices,setSource,setBrowserVoice(value){selectedVoice=value||'auto';},get studioAvailable(){return studioAvailable;},get source(){return source;}};
   }
   window.NexoraVoice={init,mouthForText,charAtTime};
