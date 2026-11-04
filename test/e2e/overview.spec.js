@@ -91,7 +91,7 @@ test('V5 scripted conversation presents five questions without Claude or API key
     await expect(page.locator('#demoResponse')).not.toBeEmpty();
     await expect(page.locator(`[data-demo-id="${id}"]`)).toHaveAttribute('aria-pressed', 'true');
   }
-  await expect(page.locator('#demoResponse')).toContainText(/browser voice/i);
+  await expect(page.locator('#demoResponse')).toContainText(/device voice/i);
   await page.locator('[data-demo-id="incident"]').click();
   await page.locator('#demoClose').click();
   await page.locator('#aemHudButton').click();
@@ -135,4 +135,29 @@ test('mobile offers the scripted voice lab', async ({page})=>{
   await page.locator('#demoVoiceToggle').click();
   await page.locator('[data-demo-id="sites"]').click();
   await expect(page.locator('#demoResponse')).toContainText('one hundred and twenty');
+});
+
+test('V6 browser voice selection works without Claude or a paid TTS token', async ({page})=>{
+  await page.goto('/');
+  await page.locator('#demoOpen').click();
+  await expect(page.locator('#demoVoiceSource')).toHaveValue('browser');
+  await expect(page.locator('#demoBrowserVoice')).toBeVisible();
+  await expect(page.locator('#demoVoiceAccess')).toBeHidden();
+  await expect(page.locator('#demoVoiceSource option[value="studio"]')).toBeDisabled();
+  await page.locator('#demoVoiceToggle').click();
+  await page.locator('[data-demo-id="voice"]').click();
+  await expect(page.locator('#demoResponse')).toContainText('scripted questions');
+  await expect(page.locator('#humanoidShell')).toHaveAttribute('data-visual','portrait');
+});
+
+test('V6 natural voice option displays private token control only when configured',async ({page})=>{
+  await page.route('**/api/demo/voice/status',async route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({provider:'ElevenLabs',configured:true,requiresAccessToken:true,mode:'scripted-questions-only'})}));
+  await page.goto('/');
+  await page.locator('#demoOpen').click();
+  await expect(page.locator('#demoVoiceSource option[value="studio"]')).toBeEnabled();
+  await page.locator('#demoVoiceSource').selectOption('studio');
+  await expect(page.locator('#demoVoiceAccess')).toBeVisible();
+  await expect(page.locator('#demoBrowserVoice')).toBeHidden();
+  await page.locator('#demoVoiceSource').selectOption('browser');
+  await expect(page.locator('#demoVoiceAccess')).toBeHidden();
 });

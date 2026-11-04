@@ -10,7 +10,7 @@
     "test": "node --test test/*.test.js",
     "test:e2e": "playwright test",
     "deploy": "wrangler deploy",
-    "check": "node --check public/app.js && node --check public/avatar-motion.js && node --check public/mock-conversation.js && node --check src/worker.js && node --check src/aem/mock.js && node --check src/aem/adobe.js && node --check src/aem/sites.js && npm test"
+    "check": "node --check public/app.js && node --check public/avatar-motion.js && node --check public/mock-conversation.js && node --check public/voice-engine.js && node --check src/demo-voice.js && node --check src/worker.js && node --check src/aem/mock.js && node --check src/aem/adobe.js && node --check src/aem/sites.js && npm test"
   },
   "devDependencies": {
     "wrangler": "^4.0.0",

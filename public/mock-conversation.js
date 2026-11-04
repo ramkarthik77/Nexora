@@ -7,7 +7,7 @@
     { id:'sites', question:'How many AEM sites do you monitor?', answer:'In this demo, I display one hundred and twenty entirely fictional AEM websites. The numbers and site names are synthetic. There are no live Adobe or company connections.' },
     { id:'deployment', question:'How many production deployments happened this quarter?', answer:'I cannot report a real quarterly production deployment total yet. The simulator shows a handful of invented pipeline executions only. Once an approved data source is connected, we can calculate verified totals.' },
     { id:'incident', question:'Can you show me an incident?', answer:'Certainly. I have switched the AEM simulator to an incident scenario. Two fictional websites are marked down, with a synthetic outage alert. Select AEM Cloud Operations to inspect the details.' },
-    { id:'voice', question:'Can you hear me and talk back?', answer:'Yes, for this demonstration! You can ask one of the five scripted questions. I can speak the answer using your browser voice, and animate my expression. The microphone requires browser speech recognition support and your permission; there is no AI reasoning connected.' },
+    { id:'voice', question:'Can you hear me and talk back?', answer:'Yes, for this demonstration! You can ask one of the five scripted questions. I can speak with your device voice, or an optional natural studio voice, while animating my expression. The microphone requires browser speech recognition support and your permission; there is no AI reasoning connected.' },
   ]);
   const clean = input => String(input ?? '').toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
   function resolve(input) {

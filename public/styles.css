@@ -183,3 +183,12 @@ body:has(.stage.view-humanoid) .humanoid-left-ui{z-index:6}
  .demo-actions #demoVoiceStatus{flex-basis:100%;margin-left:0}
 }
 @media(prefers-reduced-motion:reduce){.humanoid-shell .avatar-art{transition:none!important}}
+
+/* V6 voice lab: device voice selection and optional token-gated natural TTS. */
+.demo-voice-config{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 10px;align-items:center;margin-top:13px}
+.demo-voice-config label{color:#92cbd7;font:700 9px/1.4 ui-monospace,Consolas,monospace;letter-spacing:1px}
+.demo-voice-config select,.demo-voice-config input{height:33px;max-width:100%;min-width:0;border-radius:6px;padding:5px 9px;color:#effaff;background:#092634;border:1px solid rgba(123,211,228,.42);font:500 11px system-ui,sans-serif}
+.demo-voice-config select:focus-visible,.demo-voice-config input:focus-visible{outline:2px solid #84edfc;outline-offset:1px}
+.demo-voice-config small{grid-column:1/-1;color:#91b5bd;font:400 10px/1.6 system-ui,sans-serif}
+.demo-voice-config input.hidden,.demo-voice-config label.hidden,.demo-voice-config select.hidden{display:none!important}
+@media(max-width:740px){.demo-voice-config{grid-template-columns:1fr;gap:5px}.demo-voice-config select,.demo-voice-config input{height:33px}.demo-panel{max-height:72svh}}

@@ -211,3 +211,57 @@ standard Cloudflare Worker; a separate authorized runner/agent gateway is needed
 for repository writes and shell operations. The current app implements Claude AI
 chat only, not remote Claude Code execution. Gemini may be selected explicitly
 with `AI_PROVIDER=gemini` and `GEMINI_API_KEY` as a Worker secret.
+
+## V6: Natural Voice + Audio-Guided Mouth Movement (mock conversation)
+
+The five scripted questions work **without Claude, Gemini, Adobe, or any API key**. Open the
+Humanoid screen → **TEST VOICE CONVERSATION** → select a question. The default
+**Device voice · free** mode uses an available English voice through the browser's
+Web Speech API. Select an installed voice from the **Voice profile** dropdown.
+The canvas now animates mouth shapes using word-boundary cues and speech-state
+transitions. Device voices and word-boundary support vary by browser/OS.
+
+For a more human-sounding **optional** voice, the Worker supports ElevenLabs
+Text-to-Speech **with timestamps**. This is a **separate audio engine**, not
+Claude, so the conversation remains fully mocked. The returned character timings
+plus audio amplitude animate approximate mouth shapes; the existing illustration
+is still a 2D portrait, not an actual 3D rig. For genuinely photoreal facial
+animation, replace the portrait with a licensed/original rigged avatar and
+map provider visemes to blend shapes.
+
+### Private studio demo configuration (optional, incurs provider charges)
+
+**Do not enable paid voice generation on a public, unprotected website.** Protect
+Nexora with Cloudflare Access and an appropriate WAF/rate-limiting policy before
+enabling this endpoint. The voice route requires an additional private token and
+accepts only the five known scripted question IDs—never arbitrary client text.
+The token prevents anonymous requests but is not a substitute for rate limiting.
+
+Configure these as **Cloudflare Worker secrets**, not GitHub files:
+
+```bash
+npx wrangler secret put ELEVENLABS_API_KEY
+npx wrangler secret put ELEVENLABS_VOICE_ID
+npx wrangler secret put VOICE_DEMO_TOKEN
+```
+
+Set the non-secret flag `VOICE_DEMO_ENABLED` to `true` in the approved deployment's
+Worker environment (while retaining `AEM_MODE=mock` and
+`ENABLE_ENTERPRISE_CONNECTORS=false`). Optionally set `ELEVENLABS_MODEL` (default
+`eleven_flash_v2_5`). Do **not** enable the flag until access controls are in
+place. Then redeploy and verify:
+
+```text
+GET /api/demo/voice/status  → configured: true
+```
+
+In the UI choose **Studio natural voice**, enter your private demo access token,
+then click a scripted question. The secret is not persisted in browser storage.
+The Worker contacts ElevenLabs server-side, returns MP3 audio and character
+alignment, and the browser animates approximate visemes while playing the audio.
+Playback requires a user gesture. If the provider is unavailable, switch back to
+**Device voice**.
+
+Security: the API returns `503` when disabled, `401` without the private token,
+`400` for an unrecognized question ID, and never forwards arbitrary client text.
+No Adobe credentials, company information, or live AEM data are involved.

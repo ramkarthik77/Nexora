@@ -18,40 +18,25 @@ const state = {
  notes:read('notes',[]),events:read('events',[]),messages:read('messages',[]).slice(-30),
  weather:null,github:null,aem:null,aemScenario:'healthy',geo:null,backend:null,recognized:null,busy:false
 };
-let toastTimeout, rafId, humanoidEngine, avatarMotion, speechIdleTimer;
-let currentSpeechToken=0, currentDemoAnswer='', demoVoiceEnabled=true;
+let toastTimeout, rafId, humanoidEngine, avatarMotion, speechIdleTimer, voiceEngine;
+let currentDemoAnswer='', currentDemoId='', demoVoiceEnabled=true;
 function voiceStatus(message){const el=$('demoVoiceStatus');if(el)el.textContent=message;}
 function stopVoice(){
- currentSpeechToken++;
- clearTimeout(speechIdleTimer);
- if('speechSynthesis' in window)window.speechSynthesis.cancel();
+ clearTimeout(speechIdleTimer);voiceEngine?.stop();
  avatarMotion?.setSpeaking(false);
  if(!state.recognized)setHumanoidState('idle');
  voiceStatus('STOPPED');
 }
-function speakAnswer(answer,{speak=false}={}){
- const token=++currentSpeechToken;
+function speakAnswer(answer,{speak=false,demoId=null}={}){
  clearTimeout(speechIdleTimer);
- // Only demo or opted-in chat should speak; visual animation accompanies speech.
- const shouldSpeak=!!speak;
- if(!shouldSpeak || !('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){
-  setHumanoidState('speaking');avatarMotion?.setSpeaking(true);
-  voiceStatus(shouldSpeak?'VOICE UNAVAILABLE · TEXT SHOWN':'TEXT RESPONSE');
-  speechIdleTimer=setTimeout(()=>{if(token===currentSpeechToken){avatarMotion?.setSpeaking(false);setHumanoidState('idle');}},shouldSpeak?2400:1500);
+ if(!speak){
+  voiceEngine?.stop();setHumanoidState('speaking');avatarMotion?.setSpeaking(true);
+  voiceStatus('VOICE OFF · ANIMATION PREVIEW');
+  speechIdleTimer=setTimeout(()=>{avatarMotion?.setSpeaking(false);setHumanoidState('idle');},1500);
   return;
  }
- const u=new SpeechSynthesisUtterance(String(answer).slice(0,1400));
- u.rate=.94;u.pitch=.94;u.volume=1;
- const voices=window.speechSynthesis.getVoices?.()||[];
- const preferred=voices.find(v=>v.lang.toLowerCase().startsWith('en')&&/(natural|neural|premium|samantha|daniel|ava|zira|aria)/i.test(v.name))||voices.find(v=>v.lang.toLowerCase().startsWith('en'));
- if(preferred)u.voice=preferred;
- const end=()=>{if(token!==currentSpeechToken)return;avatarMotion?.setSpeaking(false);setHumanoidState('idle');voiceStatus('FINISHED · SELECT ANOTHER QUESTION');};
- u.onstart=()=>{if(token!==currentSpeechToken)return;setHumanoidState('speaking');avatarMotion?.setSpeaking(true);voiceStatus('SPEAKING · BROWSER VOICE');};
- u.onboundary=()=>{if(token===currentSpeechToken)avatarMotion?.speechBeat();};
- u.onend=end;u.onerror=()=>{if(token!==currentSpeechToken)return;end();voiceStatus('AUDIO UNAVAILABLE · READ RESPONSE');};
- window.speechSynthesis.cancel();
- setHumanoidState('speaking');avatarMotion?.setSpeaking(true);voiceStatus('STARTING BROWSER VOICE…');
- window.speechSynthesis.speak(u);
+ if(voiceEngine){voiceEngine.say(answer,{id:demoId});return;}
+ voiceStatus('VOICE ENGINE UNAVAILABLE');
 }
 function showDemo(){
  setView('humanoid');
@@ -68,15 +53,38 @@ function playDemoQuestion(id){
  if(!q)return;
  showDemo();
  if(q.id==='incident'){state.aemScenario='incident';loadAem();}
- currentDemoAnswer=q.answer;
+ currentDemoAnswer=q.answer;currentDemoId=q.id;
  $('demoResponseLabel').textContent='NEXORA · SCRIPTED ANSWER';
  $('demoResponse').textContent=q.answer;
  $('demoReplay').disabled=false;
  document.querySelectorAll('[data-demo-id]').forEach(b=>{b.classList.toggle('selected',b.dataset.demoId===id);b.setAttribute('aria-pressed',String(b.dataset.demoId===id));});
  pushMessage('user',q.question);
- pushMessage('assistant',q.answer,{speak:demoVoiceEnabled});
+ pushMessage('assistant',q.answer,{speak:demoVoiceEnabled,demoId:q.id});
+}
+function setupVoiceSelectors(){
+ const source=$('demoVoiceSource'),profile=$('demoBrowserVoice'),access=$('demoVoiceAccess'),accessLabel=$('demoVoiceAccessLabel'),hint=$('demoVoiceHint');
+ source.addEventListener('change',()=>{
+  const mode=voiceEngine?.setSource(source.value)||'browser';
+  source.value=mode;stopVoice();
+  const studio=mode==='studio';
+  profile.classList.toggle('hidden',studio);profile.previousElementSibling?.classList.toggle('hidden',studio);
+  access.classList.toggle('hidden',!studio);accessLabel.classList.toggle('hidden',!studio);
+  hint.textContent=studio?'Five fixed mock answers only. A private code protects the paid TTS endpoint. Character timings drive approximate lip motion.':'Browser voice quality depends on installed OS voices. No API key or network speech request is required.';
+ });
+ profile.addEventListener('change',()=>{voiceEngine?.setBrowserVoice(profile.value);stopVoice();voiceStatus('DEVICE VOICE SELECTED');});
+ const refresh=()=>voiceEngine?.availableVoices();
+ window.speechSynthesis?.addEventListener?.('voiceschanged',refresh);
+ refresh();
+ voiceEngine?.refreshStatus().then(enabled=>{
+  const opt=source.querySelector('option[value="studio"]');
+  if(!opt)return;
+  opt.disabled=!enabled;
+  opt.textContent=enabled?'Studio natural voice · ElevenLabs':'Studio natural voice · requires setup';
+  if(!enabled)hint.textContent='Free device voices are available now. Studio voice requires protected server-side ElevenLabs setup.';
+ });
 }
 function setupDemo(){
+ setupVoiceSelectors();
  const questions=window.NexoraDemo?.questions||[];
  $('demoQuestions').replaceChildren(...questions.map((q,i)=>{
   const btn=document.createElement('button');btn.type='button';btn.dataset.demoId=q.id;
@@ -88,7 +96,7 @@ function setupDemo(){
  $('demoClose').addEventListener('click',hideDemo);
  $('demoVoiceToggle').addEventListener('click',()=>{demoVoiceEnabled=!demoVoiceEnabled;$('demoVoiceToggle').textContent=demoVoiceEnabled?'◉ VOICE ON':'○ VOICE OFF';$('demoVoiceToggle').setAttribute('aria-pressed',String(demoVoiceEnabled));if(!demoVoiceEnabled)stopVoice();else voiceStatus('VOICE ENABLED');});
  $('demoVoiceToggle').setAttribute('aria-pressed','true');
- $('demoReplay').addEventListener('click',()=>{if(currentDemoAnswer)speakAnswer(currentDemoAnswer,{speak:demoVoiceEnabled});});
+ $('demoReplay').addEventListener('click',()=>{if(currentDemoAnswer)speakAnswer(currentDemoAnswer,{speak:demoVoiceEnabled,demoId:currentDemoId});});
  $('demoStop').addEventListener('click',stopVoice);
 }
 
@@ -129,7 +137,7 @@ function openOverlay(id){const el=$(id);el.classList.remove('hidden');el.setAttr
 function closeOverlay(id){const el=$(id);el.classList.add('hidden');el.setAttribute('aria-hidden','true');}
 function renderSettings(){$('githubInput').value=state.settings.github||'';$('speakResponses').checked=!!state.settings.speak;$('connectionInfo').textContent=state.backend===null?'No Worker API detected yet. UI and local commands still work.':state.backend.aiConfigured?'Cloudflare API reachable · '+(state.backend?.provider||'Claude')+' configured.':'Cloudflare API reachable · AI not configured. Add the ANTHROPIC_API_KEY secret for Claude chat.';}
 function persistMessages(){state.messages=state.messages.slice(-30);save('messages',state.messages);}
-function pushMessage(role,text,options={}){state.messages.push({role,text:String(text),at:Date.now()});persistMessages();renderMessages();if(role==='assistant')speakAnswer(String(text),{speak:options.speak??state.settings.speak});}
+function pushMessage(role,text,options={}){state.messages.push({role,text:String(text),at:Date.now()});persistMessages();renderMessages();if(role==='assistant')speakAnswer(String(text),{speak:options.speak??state.settings.speak,demoId:options.demoId||null});}
 function renderMessages(){const container=$('chatMessages');container.replaceChildren();if(state.messages.length===0){const bubble=document.createElement('div');bubble.className='chat-bubble assistant';bubble.textContent='Welcome to Nexora Spatial. I can open modules, check the time, inspect browser telemetry, save local notes, and—when Claude is connected—answer questions. What would you like to explore?';container.append(bubble);}else{for(const msg of state.messages){const bubble=document.createElement('div');bubble.className='chat-bubble '+(msg.role==='user'?'user':'assistant');const label=document.createElement('div');label.className='chat-label';label.textContent=msg.role==='user'?'YOU':'NEXORA';const content=document.createElement('div');content.textContent=msg.text;bubble.append(label,content);container.append(bubble);}}container.scrollTop=container.scrollHeight;}
 function resolveLocal(input){const q=input.trim(),s=q.toLowerCase();if(/^(open|show|go to|display|inspect)\b/.test(s)){
  const found=modules.find(m=>s.includes(m.id)||s.includes(m.name.toLowerCase())||(m.id==='agents'&&s.includes('assistant'))||(m.id==='notes'&&s.includes('memory')));
@@ -236,5 +244,11 @@ function renderOrb(){const canvas=$('orbCanvas');const ctx=canvas.getContext('2d
  rafId=requestAnimationFrame(draw);
  };draw();}
 function heartbeat(){const now=new Date();const time=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});document.title=`Nexora Spatial — ${time}`;if(state.view==='spatial'&&!state.dragging&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&performance.now()-state.lastMove>5000){state.orbit+=.0005;placeModules();}}
-humanoidEngine=window.NexoraHumanoid?.init($('humanoidCanvas'),onHumanoidState);avatarMotion=window.NexoraAvatarMotion?.init($('avatarMotion'),document.querySelector('.avatar-image'),$('humanoidShell'));startAvatarVisuals();wire();selectModule('aem');placeModules();setView('humanoid');renderOrb();renderMessages();checkBackend();loadAem();if(state.settings.github)loadGithub();setInterval(heartbeat,120);window.addEventListener('beforeunload',()=>{cancelAnimationFrame(rafId);stopVoice();avatarMotion?.destroy();});
+humanoidEngine=window.NexoraHumanoid?.init($('humanoidCanvas'),onHumanoidState);avatarMotion=window.NexoraAvatarMotion?.init($('avatarMotion'),document.querySelector('.avatar-image'),$('humanoidShell'));
+voiceEngine=window.NexoraVoice?.init({motion:avatarMotion,onState:setHumanoidState,onStatus:voiceStatus,onVoiceInfo(list){
+ const sel=$('demoBrowserVoice');const current=sel.value||'auto';
+ sel.replaceChildren(new Option('Best available English voice','auto'),...list.map(v=>new Option(v.label,v.id)));
+ if([...sel.options].some(x=>x.value===current))sel.value=current;
+}});
+startAvatarVisuals();wire();selectModule('aem');placeModules();setView('humanoid');renderOrb();renderMessages();checkBackend();loadAem();if(state.settings.github)loadGithub();setInterval(heartbeat,120);window.addEventListener('beforeunload',()=>{cancelAnimationFrame(rafId);stopVoice();avatarMotion?.destroy();});
 })();

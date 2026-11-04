@@ -1,5 +1,6 @@
 import {mockOverview} from './aem/mock.js';
 import {liveConfigured,liveOverview} from './aem/adobe.js';
+import {voiceStudioAvailable,verifyStudioToken,generateStudioVoice} from './demo-voice.js';
 /**
  * Nexora Spatial — original Cloudflare Workers backend.
  * API keys must only be stored as Worker secrets. Protect this app with Cloudflare Access
@@ -38,6 +39,19 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+    if(url.pathname==='/api/demo/voice/status' && request.method==='GET')return json({provider:'ElevenLabs',configured:voiceStudioAvailable(env),requiresAccessToken:true,mode:'scripted-questions-only'});
+    if(url.pathname==='/api/demo/voice' && request.method==='POST'){
+      // Disabled by default. Both the provider key and a separate demo access token are Worker secrets.
+      // Do not expose general-purpose paid TTS on a public workers.dev domain.
+      if(!voiceStudioAvailable(env))return error('Natural voice is not enabled on this deployment. Browser voice is available.',503);
+      if(!await verifyStudioToken(request.headers.get('x-nexora-voice-token'),env.VOICE_DEMO_TOKEN))return error('Natural voice demo access denied',401);
+      const bodySize=Number(request.headers.get('content-length')||0);
+      if(bodySize>1024)return error('Request too large',413);
+      let payload;try{payload=await request.json();}catch{return error('Invalid JSON',400);}
+      if(typeof payload?.id!=='string'||!/^(identity|sites|deployment|incident|voice)$/.test(payload.id))return error('Select one of the five mock questions',400);
+      try{return json(await generateStudioVoice(payload.id,env),200,'private, no-store');}
+      catch(e){return error(e?.message||'Natural voice unavailable',e?.status||502);}
+    }
     if(request.method==='GET' && url.pathname==='/api/health')return json({service:'nexora-spatial',status:'ok',aiConfigured:aiReady(env),provider:aiProvider(env),model:aiProvider(env)==='Claude'?(env.CLAUDE_MODEL||'claude-sonnet-4-5'):(env.GEMINI_MODEL||'gemini-2.5-flash'),aemMode:env.AEM_MODE==='live'?'live':'mock',adobeConfigured:liveConfigured(env)});
     if(url.pathname==='/api/aem/overview' && request.method==='GET'){
       if(env.AEM_MODE!=='live')return json(mockOverview(url.searchParams.get('scenario')||'healthy'));

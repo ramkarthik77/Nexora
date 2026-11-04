@@ -105,9 +105,18 @@
               <div class="hud-disclaimer">INTERACTION DEMO · CLOUD AI REQUIRES WORKER DEPLOYMENT</div>
             </div>
             <section class="demo-panel hidden" id="demoPanel" aria-label="Mock avatar conversation" aria-hidden="true">
-              <div class="demo-panel-head"><div><span class="demo-kicker">LOCAL VOICE LAB <span>NO AI · NO NETWORK</span></span><h2>Talk to Nexora<span>.</span></h2></div><button id="demoClose" class="demo-close" type="button" aria-label="Close mock conversation">✕</button></div>
+              <div class="demo-panel-head"><div><span class="demo-kicker">LOCAL VOICE LAB <span>FIVE MOCK ANSWERS · NO CLAUDE</span></span><h2>Talk to Nexora<span>.</span></h2></div><button id="demoClose" class="demo-close" type="button" aria-label="Close mock conversation">✕</button></div>
               <div class="demo-question-list" id="demoQuestions" aria-label="Five scripted questions"></div>
-              <div class="demo-response" role="status" aria-live="polite"><span class="demo-response-label" id="demoResponseLabel">READY FOR A QUESTION</span><p id="demoResponse">Choose any question. Nexora will respond and animate its face using your browser's voice.</p></div>
+              <div class="demo-response" role="status" aria-live="polite"><span class="demo-response-label" id="demoResponseLabel">READY FOR A QUESTION</span><p id="demoResponse">Choose a question. Use free device voices or an optional natural studio voice with timed mouth movement.</p></div>
+              <div class="demo-voice-config">
+                <label for="demoVoiceSource">VOICE ENGINE</label>
+                <select id="demoVoiceSource" aria-label="Voice engine"><option value="browser">Device voice · free</option><option value="studio" disabled>Studio natural voice · requires setup</option></select>
+                <label for="demoBrowserVoice">VOICE PROFILE</label>
+                <select id="demoBrowserVoice" aria-label="Installed voice profile"><option value="auto">Best available English voice</option></select>
+                <label for="demoVoiceAccess" id="demoVoiceAccessLabel" class="hidden">PRIVATE STUDIO ACCESS CODE</label>
+                <input id="demoVoiceAccess" class="hidden" type="password" autocomplete="off" placeholder="Enter private demo access code" aria-label="Private studio voice access code" maxlength="256" />
+                <small id="demoVoiceHint">Choose an installed voice. Premium natural speech requires an optional protected voice service.</small>
+              </div>
               <div class="demo-actions"><button id="demoVoiceToggle" type="button">◉ VOICE ON</button><button id="demoReplay" type="button" disabled>↻ REPLAY ANSWER</button><button id="demoStop" type="button">■ STOP</button><span id="demoVoiceStatus" aria-live="polite">SCRIPTED DEMO</span></div>
             </section>
             <div class="humanoid-bottom"><span class="hud-micro">◈ ORIGINAL NEXORA PRESENCE SYSTEM</span><span>MOVE POINTER FOR PARALLAX · PARTICLE MODE HAS 3D ROTATION</span></div>
@@ -208,6 +217,7 @@
 <script src="./mock-conversation.js" defer></script>
 <script src="./avatar-motion.js" defer></script>
 <script src="./humanoid.js" defer></script>
+<script src="./voice-engine.js" defer></script>
 <script src="./app.js" defer></script>
 </body>
 </html>

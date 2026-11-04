@@ -12,6 +12,7 @@
     canvas.width=W;canvas.height=H;
     let ready=false, speaking=false, beat=0, nextBlink=performance.now()+1800;
     let blinkAt=-1, offset=0, raf=0, last=0;
+    let mouthTarget={open:0,round:0,wide:0},mouthNow={open:0,round:0,wide:0},lastBeat=0;
     function makeReady(){
       if(!image.naturalWidth)return;
       ready=true;
@@ -25,6 +26,10 @@
       const mode=shell.dataset.mode||'idle';
       const talking=speaking||mode==='speaking';
       const phase=t*.009;
+      // Smooth audio-driven mouth shapes, with a word-beat approximation when
+      // the browser only exposes word boundaries instead of audio samples.
+      if(t-lastBeat>225&&(!speaking||mouthTarget.open>.02))mouthTarget.open*=.91;
+      for(const key of ['open','round','wide'])mouthNow[key]+=(mouthTarget[key]-mouthNow[key])*.24;
       const breath=reduce?0:Math.sin(t*.00125)*2;
       ctx.clearRect(0,0,W,H);
       // Very small image-space motion supplements the CSS perspective and parallax.
@@ -47,8 +52,9 @@
       // The original artwork stays recognizable, but this is not a rigged 3D face.
       if(talking){
         const vowel=Math.abs(Math.sin(phase*1.23)+.35*Math.sin(phase*2.13));
-        const aperture=reduce?3:3.4+Math.min(1,vowel)*7.4+beat*3;
-        const cx=398,cy=550,rad=49;
+        const openness=Math.max(.1,mouthNow.open,reduce?.17:Math.min(.32,vowel*.11+beat*.20));
+        const aperture=2.7+openness*21;
+        const cx=398,cy=550,rad=48+mouthNow.wide*11-mouthNow.round*9;
         ctx.save();
         const mouth=ctx.createRadialGradient(cx,cy+3,2,cx,cy+2,rad);
         mouth.addColorStop(0,'rgba(0,7,19,.99)');
@@ -61,7 +67,7 @@
         ctx.bezierCurveTo(cx+rad*.45,cy+aperture,cx-rad*.45,cy+aperture,cx-rad,cy+1);
         ctx.fill();
         // Move a feathered crop of the existing lower lip, minimizing a pasted-on look.
-        ctx.beginPath();ctx.ellipse(cx,cy+16+aperture*.20,67,22,0,0,Math.PI*2);ctx.clip();
+        ctx.beginPath();ctx.ellipse(cx,cy+16+aperture*.20,67+mouthNow.wide*6,22,0,0,Math.PI*2);ctx.clip();
         ctx.globalAlpha=.58;
         ctx.drawImage(image,326,553,143,39,326,553+aperture*.47,143,39);
         ctx.restore();
@@ -70,13 +76,26 @@
         const lum=ctx.createRadialGradient(cx,cy+4,10,cx,cy+4,150);
         lum.addColorStop(0,'rgba(99,229,245,.035)');lum.addColorStop(1,'rgba(99,229,245,0)');
         ctx.fillStyle=lum;ctx.beginPath();ctx.ellipse(cx,cy,145,80,0,0,Math.PI*2);ctx.fill();ctx.restore();
-        beat=Math.max(0,beat-.025);
+        beat=Math.max(0,beat-.034);
       }
     }
     raf=requestAnimationFrame(frame);
     return {
-      setSpeaking(v){speaking=!!v;if(!v)beat=0;},
-      speechBeat(){beat=1;},
+      setSpeaking(v){speaking=!!v;if(!v){beat=0;mouthTarget.open=0;}},
+      setMouth(shape={}){
+        for(const key of ['open','round','wide']){
+          if(Number.isFinite(shape[key]))mouthTarget[key]=Math.min(1,Math.max(0,shape[key]));
+        }
+        lastBeat=performance.now();
+      },
+      speechBeat(chars=''){
+        beat=1;lastBeat=performance.now();
+        const str=String(chars).toLowerCase();
+        const ch=Array.from(str).find(c=>/[a-z]/.test(c))||'';
+        mouthTarget.open=/[aeiy]/.test(ch)?.78:/[ouqw]/.test(ch)?.49:/[bmp]/.test(ch)?.08:.43;
+        mouthTarget.round=/[ouqw]/.test(ch)?.82:.05;
+        mouthTarget.wide=/[aeiy]/.test(ch)?.83:.4;
+      },
       destroy(){cancelAnimationFrame(raf);canvas.parentElement.dataset.motionReady='false';}
     };
   }
