@@ -1,0 +1,22 @@
+{
+  "name": "nexora-cloudflare-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250906.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.2",
+    "wrangler": "^4.34.0"
+  },
+  "engines": { "node": ">=20" }
+}

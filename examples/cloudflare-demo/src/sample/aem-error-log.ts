@@ -1,0 +1,5 @@
+/** Mocked diagnostic data for demos only; never presented as actual Splunk evidence. */
+export const SAMPLE_AEM_ERROR_LOG = `2026-11-08 14:22:01.144 ERROR [10.1.2.3 [1731075721144] GET /content/aem-demo/us/en.html HTTP/1.1] com.adobe.cq.wcm.core.components.internal.models.v3.HeroImpl [publish] RequestId=demo-hero-142: Failed adapting resource /content/aem-demo/us/en/jcr:content/root/hero to Hero model
+2026-11-08 14:22:01.145 ERROR [10.1.2.3] org.apache.sling.models.impl.ModelAdapterFactory [publish] RequestId=demo-hero-142: Missing required injection for property assetPath in com.acme.aem.core.models.HeroModel; model could not be instantiated
+2026-11-08 14:22:01.148 WARN  [10.1.2.3] com.acme.aem.core.models.HeroModel [publish] RequestId=demo-hero-142: Hero asset path was null after content package deployment
+2026-11-08 14:22:01.152 INFO  [10.1.2.3] org.apache.sling.engine.impl.SlingRequestProcessorImpl [publish] RequestId=demo-hero-142: rendering fallback output for /content/aem-demo/us/en.html`;

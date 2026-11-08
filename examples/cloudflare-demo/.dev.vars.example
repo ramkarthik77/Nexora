@@ -1,0 +1,4 @@
+# Copy to .dev.vars for `npm run dev`. NEVER commit the actual .dev.vars.
+GITHUB_WEBHOOK_SECRET=replace-with-strong-random-secret
+GITHUB_TOKEN=github_pat_replace_me
+ANTHROPIC_API_KEY=sk-ant-replace-me

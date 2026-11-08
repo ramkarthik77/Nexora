@@ -1,0 +1,17 @@
+{
+  "action": "opened",
+  "issue": {
+    "id": 123456789,
+    "number": 142,
+    "title": "Hero component shows blank on publish after deploy",
+    "body": "After deploying the latest AEM as a Cloud Service release to STAGE, the homepage hero is blank on publish, but it looks correct on author. The component uses core/src/main/java/.../models/HeroModel.java and ui.apps component hero. Could this be a Sling Model injection problem? Please check the sample request id demo-hero-142.",
+    "html_url": "https://github.com/owner/aem-repo/issues/142",
+    "labels": [{ "name": "bug" }]
+  },
+  "repository": {
+    "name": "aem-repo",
+    "full_name": "owner/aem-repo",
+    "default_branch": "main",
+    "owner": { "login": "owner" }
+  }
+}

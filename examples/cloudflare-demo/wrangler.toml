@@ -1,0 +1,15 @@
+name = "nexora-cloudflare-demo"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[vars]
+# Only repositories listed here may be processed. Default to public demo repos.
+# Add :aem ONLY for a confirmed archetype-based AEMaaCS repo.
+ALLOWED_REPOS = "ramkarthik77/Nexora,ramkarthik77/sitecraft,ramkarthik77/agentic-platform,ramkarthik77/ai-fieldnotes"
+CLAUDE_MODEL = "claude-sonnet-4-5"
+
+# Placeholder ID works for local Wrangler KV simulation; replace before deployment.
+[[kv_namespaces]]
+binding = "DELIVERIES"
+id = "00000000000000000000000000000000"
