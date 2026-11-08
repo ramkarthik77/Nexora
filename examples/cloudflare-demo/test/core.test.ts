@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto';
 import { verifyGithubSignature, constantTimeEqual } from '../src/ingest/verify';
 import { normalizeGithubIssueOpened } from '../src/ingest/normalize';
 import { routeIssue } from '../src/router/router';
+import { parseRepositoryAllowlist, getAllowedRepository } from '../src/router/repositories';
 import { selectRelevantPaths } from '../src/tools/github';
 import { analysisSchema } from '../src/agents/types';
 import { formatAnalysisComment } from '../src/publisher/github';
@@ -35,7 +36,9 @@ test('normalizes GitHub issue without carrying source-specific fields', () => {
 
 test('router prioritizes bug label; routes questions; defaults to dev', () => {
   assert.equal(routeIssue(event), 'aem-dev-agent');
+  assert.equal(routeIssue(event, 'general'), 'general-dev-agent');
   assert.equal(routeIssue({ ...event, issue: { ...event.issue, title: 'How do I deploy this?', labels: [] } }), 'aem-assistant');
+  assert.equal(routeIssue({ ...event, issue: { ...event.issue, title: 'How do I deploy this?', labels: [] } }, 'general'), 'general-assistant');
   assert.equal(routeIssue({ ...event, issue: { ...event.issue, title: 'Component render issue', labels: [] } }), 'aem-dev-agent');
 });
 
@@ -59,4 +62,24 @@ test('schema validates Claude JSON, publisher marks mocked context', () => {
   assert.match(comment, /Mocked AEM error log only/);
   assert.match(comment, /nexora-delivery/);
   assert.throws(() => analysisSchema.parse({ ...analysis, affectedModule: 'some-module' }));
+});
+
+test('explicit multi-repository allowlist does not allow unconfigured repos', () => {
+ const list = parseRepositoryAllowlist('ramkarthik77/Nexora,ramkarthik77/Sitecraft,org/aem-project:aem');
+ assert.equal(getAllowedRepository('RAMKARTHIK77/nexora', list)?.kind, 'general');
+ assert.equal(getAllowedRepository('org/aem-project', list)?.kind, 'aem');
+ assert.equal(getAllowedRepository('someone/private', list), undefined);
+ assert.throws(() => parseRepositoryAllowlist('ramkarthik77/*'), /Invalid/);
+ assert.throws(() => parseRepositoryAllowlist('owner/repo,OWNER/repo'), /Duplicate/);
+});
+test('generic repository selector includes relevant source and not secrets', () => {
+ const paths = selectRelevantPaths([
+   { path: 'src/hero.ts', type: 'blob', size: 1000 },
+   { path: 'README.md', type: 'blob', size: 300 },
+   { path: '.env.production', type: 'blob', size: 100 },
+   { path: '.github/workflows/deploy.yml', type: 'blob', size: 200 },
+ ], 'Hero fails on page', 5, 'general');
+ assert.ok(paths.includes('src/hero.ts'));
+ assert.ok(paths.includes('README.md'));
+ assert.ok(!paths.some(p => p.includes('.env') || p.includes('.github')));
 });

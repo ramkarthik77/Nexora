@@ -9,7 +9,9 @@ if (!repo || !/^[^/]+\/[^/]+$/.test(repo) || !secret || !Number.isSafeInteger(is
   console.error('Set GITHUB_REPO=owner/repo, ISSUE_NUMBER=<existing issue>, GITHUB_WEBHOOK_SECRET=<same as Worker>');
   process.exit(1);
 }
-const payload = JSON.parse(await readFile(new URL('../sample-issue-opened.json', import.meta.url), 'utf8'));
+const scenario = process.env.SCENARIO === 'aem' ? 'aem' : 'general';
+const fixture = scenario === 'aem' ? '../sample-issue-opened.json' : '../sample-general-issue-opened.json';
+const payload = JSON.parse(await readFile(new URL(fixture, import.meta.url), 'utf8'));
 const [owner, name] = repo.split('/');
 payload.repository.name = name;
 payload.repository.full_name = repo;

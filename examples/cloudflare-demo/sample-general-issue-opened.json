@@ -1,0 +1,23 @@
+{
+  "action": "opened",
+  "issue": {
+    "id": 123456789,
+    "number": 142,
+    "title": "Agent execution fails to record task status after retry",
+    "body": "On a retried agent task, the UI still shows Running after the worker finishes. Could the task-state update be missing from the error path? Please investigate the relevant TypeScript code. This is a safe demo issue; no production incident.",
+    "html_url": "https://github.com/owner/aem-repo/issues/142",
+    "labels": [
+      {
+        "name": "bug"
+      }
+    ]
+  },
+  "repository": {
+    "name": "aem-repo",
+    "full_name": "owner/aem-repo",
+    "default_branch": "main",
+    "owner": {
+      "login": "owner"
+    }
+  }
+}

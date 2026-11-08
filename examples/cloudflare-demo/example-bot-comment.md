@@ -21,3 +21,8 @@ Inspect `HeroModel`'s `@ValueMapValue` injection and the hero component's resour
 - What do the actual publish error logs show for the matching request ID?
 
 > Demo only: AI-generated hypothesis. No code changes, merge, deploy, or live Splunk queries were performed.
+
+
+---
+
+For a **non-AEM** repository, the comment uses `general-dev-agent` or `general-assistant`, can select `frontend`, `backend`, `src`, `docs`, or `infrastructure`, and explicitly states that **no logs were queried**.

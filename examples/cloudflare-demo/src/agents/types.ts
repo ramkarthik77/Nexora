@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import type { CanonicalIssueOpened, AgentId } from '../events/canonical';
+import type { RepositoryKind } from '../router/repositories';
 
 export const analysisSchema = z.object({
   summary: z.string().min(1).max(2500),
   likelyRootCause: z.string().min(1).max(3000),
-  affectedModule: z.enum(['core', 'ui.apps', 'ui.config', 'dispatcher', 'unknown']),
+  affectedModule: z.enum(['core', 'ui.apps', 'ui.config', 'dispatcher', 'frontend', 'backend', 'src', 'docs', 'infrastructure', 'unknown']),
   suggestedFix: z.string().min(1).max(4000),
   confidence: z.enum(['low', 'medium', 'high']),
   questions: z.array(z.string().max(500)).max(5),
@@ -15,7 +16,8 @@ export interface RepoFile { path: string; content: string }
 export interface AgentInput {
   event: CanonicalIssueOpened;
   files: RepoFile[];
-  mockLog: string;
+  mockLog?: string;
+  repositoryKind: RepositoryKind;
   claude: ClaudeProvider;
   signal?: AbortSignal;
 }
@@ -33,7 +35,7 @@ export const analysisJsonSchema = {
   properties: {
     summary: { type: 'string' },
     likelyRootCause: { type: 'string' },
-    affectedModule: { type: 'string', enum: ['core', 'ui.apps', 'ui.config', 'dispatcher', 'unknown'] },
+    affectedModule: { type: 'string', enum: ['core', 'ui.apps', 'ui.config', 'dispatcher', 'frontend', 'backend', 'src', 'docs', 'infrastructure', 'unknown'] },
     suggestedFix: { type: 'string' },
     confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
     questions: { type: 'array', items: { type: 'string' } },

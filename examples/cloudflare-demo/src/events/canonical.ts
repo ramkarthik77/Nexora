@@ -1,5 +1,5 @@
 /** Stable core contract: no Cloudflare or GitHub SDK dependencies. */
-export type AgentId = 'aem-dev-agent' | 'aem-assistant';
+export type AgentId = 'aem-dev-agent' | 'aem-assistant' | 'general-dev-agent' | 'general-assistant';
 
 export interface CanonicalIssueOpened {
   schemaVersion: '1.0';

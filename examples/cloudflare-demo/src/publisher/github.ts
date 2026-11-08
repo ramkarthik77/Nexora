@@ -1,6 +1,7 @@
 import type { Analysis } from '../agents/types';
 import type { AgentId, CanonicalIssueOpened } from '../events/canonical';
 import { githubApi } from '../tools/github';
+import type { RepositoryKind } from '../router/repositories';
 
 const LABEL = 'nexora-analyzed';
 const escapeMarkdown = (s: string) => s.replace(/[<>]/g, (ch) => ch === '<' ? '&lt;' : '&gt;');
@@ -10,6 +11,7 @@ export function formatAnalysisComment(
   agent: AgentId,
   analysis: Analysis,
   filePaths: string[],
+  kind: RepositoryKind = 'aem',
 ): string {
   const lines = [
     `<!-- nexora-delivery:${event.source.deliveryId} -->`,
@@ -22,7 +24,7 @@ export function formatAnalysisComment(
     `### Suggested fix`, escapeMarkdown(analysis.suggestedFix), '',
     `### Context reviewed`,
     filePaths.length ? filePaths.map((p) => `- \`${p.replace(/`/g, '')}\``).join('\n') : '- No matching repository files found',
-    '- **Mocked AEM error log only** (not evidence from your environment)',
+    kind === 'aem' ? '- **Mocked AEM error log only** (not evidence from your environment)' : '- No logs were queried for this repository',
     '',
   ];
   if (analysis.questions.length) lines.push('### Questions / missing context', ...analysis.questions.map((q) => `- ${escapeMarkdown(q)}`), '');
@@ -40,6 +42,7 @@ export async function publishGithubAnalysis(
   files: string[],
   token: string,
   signal?: AbortSignal,
+  kind: RepositoryKind = 'aem',
 ): Promise<void> {
   const { owner, name } = event.repository;
   const prefix = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
@@ -49,7 +52,7 @@ export async function publishGithubAnalysis(
   const comments = await githubApi<ExistingComment[]>(`${issuePath}/comments?per_page=100`, token, { signal });
   if (!comments.some((c) => c.body?.includes(marker))) {
     await githubApi(`${issuePath}/comments`, token, {
-      method: 'POST', body: { body: formatAnalysisComment(event, agent, analysis, files) }, signal,
+      method: 'POST', body: { body: formatAnalysisComment(event, agent, analysis, files, kind) }, signal,
     });
   }
   // Idempotent set operation; label must already exist on the repository.

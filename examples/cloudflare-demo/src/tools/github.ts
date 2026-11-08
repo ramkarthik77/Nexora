@@ -1,10 +1,11 @@
 import type { CanonicalIssueOpened } from '../events/canonical';
 import type { RepoFile } from '../agents/types';
+import type { RepositoryKind } from '../router/repositories';
 
 const API = 'https://api.github.com';
 const MAX_FILE_BYTES = 16_000;
-const ALLOWED_EXTENSIONS = /\.(java|xml|html|json|js|ts|css|scss|yaml|yml|cfg|config|txt|md)$/i;
-const ALLOWED_MODULES = /^(core|ui\.apps|ui\.config|dispatcher)\//;
+const ALLOWED_EXTENSIONS = /\.(java|xml|html|json|js|ts|css|scss|yaml|yml|cfg|config|toml|txt|md)$/i;
+const AEM_MODULES = /^(core|ui\.apps|ui\.config|dispatcher)\//;
 const BLOCKED_PATH = /(^|\/)(\.env|\.npmrc|\.git|secrets?|credentials?|private|\.github)(\/|\.|$)|\.(pem|p12|jks|key|keystore|asc)$/i;
 
 export async function githubApi<T>(
@@ -33,18 +34,21 @@ interface TreeItem { path: string; type: string; size?: number }
 interface GitTree { tree: TreeItem[]; truncated: boolean }
 interface GitContent { content?: string; encoding?: string; size: number; type: string }
 
+const GENERIC_TEXT_FILES = /^(README\.md|package\.json|wrangler\.toml|tsconfig\.json)$/i;
+
 const STOPWORDS = new Set(['this', 'that', 'from', 'with', 'after', 'shows', 'component', 'issue', 'publish', 'deploy', 'please', 'when', 'does', 'have', 'aem', 'cloud', 'services']);
 
 export function selectRelevantPaths(
   files: TreeItem[],
   issueText: string,
   maxFiles = 5,
+  kind: RepositoryKind = 'aem',
 ): string[] {
   const words = [...new Set((issueText.toLowerCase().match(/[a-z][a-z0-9]{2,}/g) ?? []))]
     .filter((x) => !STOPWORDS.has(x)).slice(0, 30);
   const candidates = files.filter((item) =>
     item.type === 'blob' &&
-    ALLOWED_MODULES.test(item.path) &&
+    (kind === 'aem' ? AEM_MODULES.test(item.path) : !item.path.includes('node_modules/')) &&
     ALLOWED_EXTENSIONS.test(item.path) &&
     !BLOCKED_PATH.test(item.path) &&
     (item.size ?? MAX_FILE_BYTES + 1) <= MAX_FILE_BYTES,
@@ -60,7 +64,9 @@ export function selectRelevantPaths(
     if (/hero|banner/.test(issueText.toLowerCase()) && /hero|banner/.test(lower)) score += 15;
     if (/osgi|service|configuration/.test(issueText.toLowerCase()) && lower.startsWith('ui.config/')) score += 5;
     if (/cache|filter|dispatcher/.test(issueText.toLowerCase()) && lower.startsWith('dispatcher/')) score += 5;
-    if (/\.java$/.test(lower)) score += 1;
+    if (/\.java$/.test(lower) && kind === 'aem') score += 1;
+    if (kind === 'general' && GENERIC_TEXT_FILES.test(path)) score += 3;
+    if (kind === 'general' && /^(src|app|lib|functions|workers|packages)\//.test(lower)) score += 1;
     return { path, score };
   }).sort((a, b) => b.score - a.score || a.path.localeCompare(b.path))
     .filter((x) => x.score > 0)
@@ -73,6 +79,7 @@ export async function readRelevantRepoFiles(
   event: CanonicalIssueOpened,
   token: string,
   signal?: AbortSignal,
+  kind: RepositoryKind = 'aem',
 ): Promise<RepoFile[]> {
   const repo = `${encodeURIComponent(event.repository.owner)}/${encodeURIComponent(event.repository.name)}`;
   const ref = event.repository.defaultBranch;
@@ -80,7 +87,7 @@ export async function readRelevantRepoFiles(
   if (tree.truncated) {
     console.warn('GitHub tree truncated; file selection may be incomplete');
   }
-  const paths = selectRelevantPaths(tree.tree, `${event.issue.title}\n${event.issue.body}`);
+  const paths = selectRelevantPaths(tree.tree, `${event.issue.title}\n${event.issue.body}`, 5, kind);
   const results = await Promise.allSettled(paths.map(async (path): Promise<RepoFile> => {
     const encodedPath = path.split('/').map(encodeURIComponent).join('/');
     const file = await githubApi<GitContent>(`/repos/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`, token, { signal });
