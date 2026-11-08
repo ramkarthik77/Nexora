@@ -1,0 +1,14 @@
+name = "nexora-cloudflare-demo"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[vars]
+# Change to the EXACT repository that sends GitHub webhooks.
+GITHUB_REPO = "owner/aem-repo"
+CLAUDE_MODEL = "claude-sonnet-4-5"
+
+# Placeholder ID works for local Wrangler KV simulation; replace before deployment.
+[[kv_namespaces]]
+binding = "DELIVERIES"
+id = "00000000000000000000000000000000"
